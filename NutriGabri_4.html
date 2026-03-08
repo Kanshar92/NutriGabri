@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NutriGabri" />
+  <meta name="theme-color" content="#0d1821" />
+  <title>NutriGabri</title>
+  <link rel="manifest" id="manifest-placeholder" />
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; padding: 0; background: #0d1821; font-family: sans-serif; overscroll-behavior: none; }
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 99px; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #00e5b4; cursor: pointer; box-shadow: 0 0 6px #00e5b488; }
+    input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    ::-webkit-scrollbar { display: none; }
+    select { -webkit-appearance: none; }
+  </style>
+</head>
+<body>
+  <div id="root">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#00e5b4;font-family:sans-serif;font-size:18px;">
+    Caricamento NutriGabri...
+  </div>
+</div>
+
+  <script>
+    // PWA Manifest inline
+    const manifest = {
+      name: "NutriGabri",
+      short_name: "NutriGabri",
+      description: "Il tuo diario nutrizionale personale",
+      start_url: "./",
+      display: "standalone",
+      background_color: "#0d1821",
+      theme_color: "#0d1821",
+      orientation: "portrait",
+      icons: [
+        { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d1821'/><text y='.9em' font-size='80' x='10'>🥗</text></svg>", sizes: "192x192", type: "image/svg+xml" },
+        { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d1821'/><text y='.9em' font-size='80' x='10'>🥗</text></svg>", sizes: "512x512", type: "image/svg+xml" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+    document.getElementById('manifest-placeholder').href = URL.createObjectURL(blob);
+  </script>
+
+  <!-- React + ReactDOM via CDN -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Babel standalone for JSX -->
+  <script>
+  window.onerror = function(msg, src, line, col, err) {
+    document.getElementById('root').innerHTML = '<div style="color:#f87171;padding:20px;font-size:14px;font-family:sans-serif;">Errore JS: ' + msg + ' (line ' + line + ')</div>';
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATABASE COMPLETO
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── COLAZIONE ─────────────────────────────────────────────────────────────
+const COLAZIONI = {
+  proteiche: [
+    { nome: "Yogurt greco 0% (150g)", grammi: 150, kcal: 90, carbo: 6, proteine: 15, grassi: 0.5 },
+    { nome: "Yogurt greco 2% (150g)", grammi: 150, kcal: 110, carbo: 6, proteine: 14, grassi: 3 },
+    { nome: "Skyr naturale (150g)", grammi: 150, kcal: 90, carbo: 6, proteine: 16, grassi: 0.3 },
+    { nome: "Fiocchi di latte magri (150g)", grammi: 150, kcal: 120, carbo: 4, proteine: 18, grassi: 1 },
+    { nome: "Ricotta light (100g)", grammi: 100, kcal: 105, carbo: 4, proteine: 11, grassi: 5 },
+    { nome: "Uova strapazzate (2)", grammi: 120, kcal: 148, carbo: 0, proteine: 14, grassi: 10 },
+    { nome: "Uova sode (2)", grammi: 120, kcal: 148, carbo: 0, proteine: 14, grassi: 10 },
+    { nome: "Albumi (3)", grammi: 100, kcal: 52, carbo: 1, proteine: 11, grassi: 0.2 },
+    { nome: "Whey proteica (30g)", grammi: 30, kcal: 120, carbo: 3, proteine: 22, grassi: 2 },
+    { nome: "Proteine vegetali pisello (30g)", grammi: 30, kcal: 115, carbo: 2, proteine: 20, grassi: 2 },
+  ],
+  carboidrati: [
+    { nome: "Pane integrale (30g) ⚠️ elimina frutto+noci dal pranzo", grammi: 30, kcal: 75, carbo: 14, proteine: 3, grassi: 1 },
+    { nome: "Pane integrale (50g)", grammi: 50, kcal: 125, carbo: 23, proteine: 5, grassi: 1.5 },
+    { nome: "Fiocchi d'avena (40g)", grammi: 40, kcal: 150, carbo: 26, proteine: 5, grassi: 3 },
+    { nome: "Fiocchi d'avena (60g)", grammi: 60, kcal: 225, carbo: 39, proteine: 7, grassi: 4 },
+    { nome: "Gallette di riso (3 pz)", grammi: 30, kcal: 110, carbo: 24, proteine: 2, grassi: 1 },
+    { nome: "Fette biscottate integrali (3 pz)", grammi: 30, kcal: 110, carbo: 22, proteine: 3, grassi: 1.5 },
+    { nome: "Muesli senza zucchero (40g)", grammi: 40, kcal: 145, carbo: 26, proteine: 4, grassi: 3 },
+    { nome: "Cornetto integrale vuoto (bar) ⚠️ elimina frutto+noci", grammi: 60, kcal: 190, carbo: 32, proteine: 5, grassi: 5 },
+  ],
+  grassi_dolci: [
+    { nome: "Burro (10g) ⚠️ con pane+marmellata", grammi: 10, kcal: 74, carbo: 0, proteine: 0.1, grassi: 8 },
+    { nome: "Marmellata (1 cucchiaio 20g)", grammi: 20, kcal: 50, carbo: 13, proteine: 0.1, grassi: 0 },
+    { nome: "Burro di mandorle (15g)", grammi: 15, kcal: 95, carbo: 3, proteine: 3, grassi: 8 },
+    { nome: "Burro di arachidi (15g)", grammi: 15, kcal: 90, carbo: 3, proteine: 4, grassi: 7 },
+    { nome: "Miele (1 cucchiaino 10g)", grammi: 10, kcal: 30, carbo: 8, proteine: 0, grassi: 0 },
+    { nome: "Semi di chia (10g)", grammi: 10, kcal: 49, carbo: 4, proteine: 2, grassi: 3 },
+  ],
+  bevande: [
+    { nome: "Caffè espresso", grammi: 30, kcal: 2, carbo: 0.3, proteine: 0.1, grassi: 0 },
+    { nome: "Caffè americano (200ml)", grammi: 200, kcal: 5, carbo: 0.5, proteine: 0.2, grassi: 0 },
+    { nome: "Cappuccino (con latte p.s.)", grammi: 150, kcal: 60, carbo: 6, proteine: 4, grassi: 2 },
+    { nome: "Latte macchiato (200ml)", grammi: 200, kcal: 75, carbo: 9, proteine: 5, grassi: 2 },
+    { nome: "Caffè d'orzo", grammi: 30, kcal: 8, carbo: 1.5, proteine: 0.2, grassi: 0.1 },
+    { nome: "Tè verde (tazza 250ml)", grammi: 250, kcal: 2, carbo: 0.3, proteine: 0.1, grassi: 0 },
+    { nome: "Tè nero (tazza 250ml)", grammi: 250, kcal: 3, carbo: 0.5, proteine: 0.1, grassi: 0 },
+    { nome: "Tè freddo non zuccherato (250ml)", grammi: 250, kcal: 5, carbo: 1, proteine: 0.1, grassi: 0 },
+    { nome: "Tisana (250ml)", grammi: 250, kcal: 2, carbo: 0.2, proteine: 0, grassi: 0 },
+    { nome: "Latte parz. scremato (200ml)", grammi: 200, kcal: 70, carbo: 10, proteine: 7, grassi: 1.5 },
+    { nome: "Latte intero (200ml)", grammi: 200, kcal: 130, carbo: 10, proteine: 7, grassi: 7 },
+    { nome: "Latte di avena (200ml)", grammi: 200, kcal: 90, carbo: 16, proteine: 3, grassi: 2 },
+    { nome: "Latte di mandorla (200ml)", grammi: 200, kcal: 28, carbo: 1, proteine: 1, grassi: 2.5 },
+    { nome: "Succo d'arancia fresco (150ml)", grammi: 150, kcal: 66, carbo: 15, proteine: 1, grassi: 0.2 },
+    { nome: "Succo di mela (150ml)", grammi: 150, kcal: 72, carbo: 17, proteine: 0.1, grassi: 0.1 },
+    { nome: "Centrifugato verdura+frutta (200ml)", grammi: 200, kcal: 80, carbo: 18, proteine: 1.5, grassi: 0.3 },
+  ],
+  frutta: [
+    { nome: "Mela (150g)", grammi: 150, kcal: 78, carbo: 20, proteine: 0.4, grassi: 0.2 },
+    { nome: "Banana piccola (100g)", grammi: 100, kcal: 89, carbo: 23, proteine: 1, grassi: 0.3 },
+    { nome: "Frutti di bosco misti (150g)", grammi: 150, kcal: 60, carbo: 12, proteine: 1, grassi: 0.5 },
+    { nome: "Mirtilli (150g)", grammi: 150, kcal: 86, carbo: 18, proteine: 1, grassi: 0.5 },
+    { nome: "Fragole (200g)", grammi: 200, kcal: 64, carbo: 14, proteine: 1.3, grassi: 0.6 },
+    { nome: "Ananas (150g)", grammi: 150, kcal: 78, carbo: 19, proteine: 0.9, grassi: 0.1 },
+  ],
+};
+
+// ─── FRUTTA E FRUTTA SECCA DOPO PASTO ─────────────────────────────────────
+// Piano: dopo pranzo 1 frutto + 5 noci / 15 mandorle/nocciole
+//        dopo cena   1 frutto + 3 noci / 10 mandorle/nocciole
+const FRUTTA_DOPO_PASTO = [
+  { nome: "1 Mela (150g)", grammi: 150, kcal: 78, carbo: 20, proteine: 0.4, grassi: 0.2 },
+  { nome: "1 Arancio (180g)", grammi: 180, kcal: 72, carbo: 17, proteine: 1.4, grassi: 0.2 },
+  { nome: "1 Banana media (150g sbucciata)", grammi: 150, kcal: 134, carbo: 34, proteine: 1.5, grassi: 0.5 },
+  { nome: "1 Pesca grande (200g)", grammi: 200, kcal: 78, carbo: 19, proteine: 1.8, grassi: 0.2 },
+  { nome: "Fragole (300g)", grammi: 300, kcal: 96, carbo: 21, proteine: 2, grassi: 0.9 },
+  { nome: "Ciliegie (250g)", grammi: 250, kcal: 130, carbo: 31, proteine: 2, grassi: 0.5 },
+  { nome: "2 Albicocche", grammi: 100, kcal: 48, carbo: 11, proteine: 1, grassi: 0.2 },
+  { nome: "Cocomero (250g)", grammi: 250, kcal: 75, carbo: 18, proteine: 1.5, grassi: 0.2 },
+  { nome: "Melone (250g)", grammi: 250, kcal: 88, carbo: 22, proteine: 2, grassi: 0.3 },
+  { nome: "2 Susine grandi (160g)", grammi: 160, kcal: 72, carbo: 17, proteine: 0.8, grassi: 0.4 },
+  { nome: "3 Nespole", grammi: 120, kcal: 62, carbo: 14, proteine: 0.6, grassi: 0.3 },
+  { nome: "Mirtilli (200g)", grammi: 200, kcal: 114, carbo: 24, proteine: 1.5, grassi: 0.7 },
+  { nome: "Lamponi (200g)", grammi: 200, kcal: 104, carbo: 20, proteine: 2.4, grassi: 1.4 },
+  { nome: "Ananas (200g)", grammi: 200, kcal: 104, carbo: 25, proteine: 1.2, grassi: 0.2 },
+  { nome: "Kiwi (2 pz ~150g)", grammi: 150, kcal: 90, carbo: 20, proteine: 1.8, grassi: 0.6 },
+];
+
+// Quantità: 1 cucchiaino raso ≈ 5ml ≈ 5g per la frutta secca in crema
+// 1 cucchiaio colmo ≈ 15ml ≈ 15g
+const FRUTTA_SECCA_DOPO_PASTO = [
+  // Frutta secca intera
+  { nome: "5 Noci (dopo pranzo) — 25g", grammi: 25, kcal: 163, carbo: 3, proteine: 4, grassi: 16 },
+  { nome: "3 Noci (dopo cena) — 15g", grammi: 15, kcal: 98, carbo: 2, proteine: 2.4, grassi: 9.6 },
+  { nome: "15 Mandorle (dopo pranzo) — 20g", grammi: 20, kcal: 118, carbo: 4, proteine: 4, grassi: 10 },
+  { nome: "10 Mandorle (dopo cena) — 13g", grammi: 13, kcal: 77, carbo: 2.5, proteine: 2.6, grassi: 6.5 },
+  { nome: "15 Nocciole (dopo pranzo) — 20g", grammi: 20, kcal: 125, carbo: 4, proteine: 3, grassi: 11 },
+  { nome: "10 Nocciole (dopo cena) — 13g", grammi: 13, kcal: 81, carbo: 2.5, proteine: 2, grassi: 7 },
+  // Creme spalmabili — misurate in cucchiaini
+  { nome: "Burro di noccioline — 1 cucchiaino raso (5g)", grammi: 5, kcal: 30, carbo: 1, proteine: 1.4, grassi: 2.6 },
+  { nome: "Burro di noccioline — 1 cucchiaino colmo (8g)", grammi: 8, kcal: 48, carbo: 1.5, proteine: 2.2, grassi: 4 },
+  { nome: "Burro di noccioline — 1 cucchiaio (15g = 3 cucchiaini)", grammi: 15, kcal: 90, carbo: 3, proteine: 4, grassi: 7.5 },
+  { nome: "Burro di mandorle — 1 cucchiaino raso (5g)", grammi: 5, kcal: 32, carbo: 1, proteine: 1, grassi: 2.8 },
+  { nome: "Burro di mandorle — 1 cucchiaino colmo (8g)", grammi: 8, kcal: 51, carbo: 1.5, proteine: 1.6, grassi: 4.5 },
+  { nome: "Burro di mandorle — 1 cucchiaio (15g)", grammi: 15, kcal: 95, carbo: 3, proteine: 3, grassi: 8.5 },
+  { nome: "Crema spalmabile nocciole (tipo Rigoni) — 1 cucchiaino (5g)", grammi: 5, kcal: 28, carbo: 2.5, proteine: 0.6, grassi: 1.8 },
+  { nome: "Crema spalmabile nocciole — 1 cucchiaio (15g)", grammi: 15, kcal: 84, carbo: 7.5, proteine: 1.8, grassi: 5.4 },
+  { nome: "Tahini (pasta di sesamo) — 1 cucchiaino (5g)", grammi: 5, kcal: 30, carbo: 0.9, proteine: 0.9, grassi: 2.7 },
+  { nome: "Tahini — 1 cucchiaio (15g)", grammi: 15, kcal: 89, carbo: 2.7, proteine: 2.7, grassi: 8 },
+  { nome: "Yogurt greco 2% (opz. alternativa frutta secca cena)", grammi: 125, kcal: 92, carbo: 5, proteine: 12, grassi: 2.5 },
+  { nome: "Burro di frutta secca (20g = pranzo) — ≈ 4 cucchiaini rasi", grammi: 20, kcal: 122, carbo: 3.5, proteine: 3.5, grassi: 10.5 },
+  { nome: "Burro di frutta secca (15g = cena) — ≈ 3 cucchiaini rasi", grammi: 15, kcal: 92, carbo: 2.6, proteine: 2.6, grassi: 7.9 },
+];
+
+// ─── SPUNTINI ──────────────────────────────────────────────────────────────
+const SPUNTINI = {
+  frutta_secca: [
+    { nome: "5 Noci", grammi: 25, kcal: 163, carbo: 3, proteine: 4, grassi: 16 },
+    { nome: "15 Mandorle", grammi: 20, kcal: 118, carbo: 4, proteine: 4, grassi: 10 },
+    { nome: "15 Nocciole", grammi: 20, kcal: 125, carbo: 4, proteine: 3, grassi: 11 },
+    { nome: "10 Anacardi", grammi: 20, kcal: 113, carbo: 6, proteine: 4, grassi: 9 },
+    { nome: "Noci pecan (20g)", grammi: 20, kcal: 138, carbo: 3, proteine: 2, grassi: 14 },
+    { nome: "Noci macadamia (20g)", grammi: 20, kcal: 142, carbo: 3, proteine: 2, grassi: 15 },
+    { nome: "Mix frutta secca (30g)", grammi: 30, kcal: 185, carbo: 8, proteine: 5, grassi: 15 },
+    { nome: "Burro di mandorle (1 cuc 15g)", grammi: 15, kcal: 95, carbo: 3, proteine: 3, grassi: 8 },
+    { nome: "Burro di arachidi (1 cuc 15g)", grammi: 15, kcal: 90, carbo: 3, proteine: 4, grassi: 7 },
+  ],
+  proteico: [
+    { nome: "Yogurt greco 0% (125g)", grammi: 125, kcal: 75, carbo: 5, proteine: 12, grassi: 0.4 },
+    { nome: "Fiocchi di latte (100g)", grammi: 100, kcal: 80, carbo: 3, proteine: 12, grassi: 2 },
+    { nome: "Uovo sodo (1)", grammi: 60, kcal: 74, carbo: 0, proteine: 7, grassi: 5 },
+    { nome: "Bresaola (30g)", grammi: 30, kcal: 47, carbo: 0, proteine: 9.5, grassi: 1 },
+    { nome: "Tonno al naturale (50g)", grammi: 50, kcal: 50, carbo: 0, proteine: 11.5, grassi: 0.5 },
+    { nome: "Affettato pollo (50g)", grammi: 50, kcal: 55, carbo: 0.5, proteine: 11, grassi: 1 },
+    { nome: "Formaggio stagionato (20g)", grammi: 20, kcal: 82, carbo: 0, proteine: 5.5, grassi: 6.5 },
+  ],
+  frutta: [
+    { nome: "1 Mela", grammi: 150, kcal: 78, carbo: 20, proteine: 0.4, grassi: 0.2 },
+    { nome: "1 Arancio", grammi: 180, kcal: 72, carbo: 17, proteine: 1.4, grassi: 0.2 },
+    { nome: "1 Pesca grande", grammi: 200, kcal: 78, carbo: 19, proteine: 1.8, grassi: 0.2 },
+    { nome: "Banana media (150g sbucciata)", grammi: 150, kcal: 134, carbo: 34, proteine: 1.5, grassi: 0.5 },
+    { nome: "Fragole (300g)", grammi: 300, kcal: 96, carbo: 21, proteine: 2, grassi: 0.9 },
+    { nome: "Mirtilli (200g)", grammi: 200, kcal: 114, carbo: 24, proteine: 1.5, grassi: 0.7 },
+    { nome: "2 Susine grandi", grammi: 160, kcal: 72, carbo: 17, proteine: 0.8, grassi: 0.4 },
+    { nome: "Cocomero (250g)", grammi: 250, kcal: 75, carbo: 18, proteine: 1.5, grassi: 0.2 },
+    { nome: "Melone (250g)", grammi: 250, kcal: 88, carbo: 22, proteine: 2, grassi: 0.3 },
+  ],
+  snack_salato: [
+    { nome: "Gallette di riso (2 pz)", grammi: 20, kcal: 74, carbo: 16, proteine: 1.5, grassi: 0.7 },
+    { nome: "Gallette di riso + bresaola", grammi: 50, kcal: 121, carbo: 16, proteine: 11, grassi: 1.7 },
+    { nome: "Grissini (20g)", grammi: 20, kcal: 80, carbo: 14, proteine: 2, grassi: 2 },
+    { nome: "Edamame (100g sgusciati)", grammi: 100, kcal: 128, carbo: 8, proteine: 11, grassi: 6 },
+    { nome: "Hummus (50g) + verdure", grammi: 50, kcal: 118, carbo: 9, proteine: 5, grassi: 7 },
+    { nome: "Kombucha (250ml)", grammi: 250, kcal: 35, carbo: 8, proteine: 0.5, grassi: 0 },
+    { nome: "Kefir (150ml)", grammi: 150, kcal: 75, carbo: 8, proteine: 5, grassi: 2 },
+  ],
+};
+
+// ─── BEVANDE PASTO ─────────────────────────────────────────────────────────
+// Misurate in bicchieri standard (1 bicchiere = circa 150ml vino, 330ml birra)
+const BEVANDE_PASTO = [
+  // Acque e no-alcolici
+  { nome: "Acqua naturale (500ml)", grammi: 500, kcal: 0, carbo: 0, proteine: 0, grassi: 0, ml: 500 },
+  { nome: "Acqua frizzante (500ml)", grammi: 500, kcal: 0, carbo: 0, proteine: 0, grassi: 0, ml: 500 },
+  { nome: "Kombucha (250ml)", grammi: 250, kcal: 35, carbo: 8, proteine: 0.5, grassi: 0, ml: 250 },
+  { nome: "Succo di mela 1 bicchiere (150ml)", grammi: 150, kcal: 72, carbo: 17, proteine: 0.1, grassi: 0.1, ml: 150 },
+  { nome: "Tè freddo non zuccherato (250ml)", grammi: 250, kcal: 5, carbo: 1, proteine: 0.1, grassi: 0, ml: 250 },
+  // Vino — 1 bicchiere = 150ml
+  { nome: "Vino bianco secco 🍷 1 bicchiere (150ml)", grammi: 150, kcal: 108, carbo: 2, proteine: 0.1, grassi: 0, ml: 150 },
+  { nome: "Vino rosso secco 🍷 1 bicchiere (150ml)", grammi: 150, kcal: 120, carbo: 2.5, proteine: 0.1, grassi: 0, ml: 150 },
+  { nome: "Vino rosé 1 bicchiere (150ml)", grammi: 150, kcal: 105, carbo: 2, proteine: 0.1, grassi: 0, ml: 150 },
+  { nome: "Prosecco / Spumante 1 bicchiere (125ml)", grammi: 125, kcal: 90, carbo: 2.5, proteine: 0.1, grassi: 0, ml: 125 },
+  // Birra — 1 bicchiere/bottiglia = 330ml
+  { nome: "Birra chiara 🍺 1 bicchiere (330ml)", grammi: 330, kcal: 148, carbo: 12, proteine: 1.6, grassi: 0, ml: 330 },
+  { nome: "Birra scura 1 bicchiere (330ml)", grammi: 330, kcal: 162, carbo: 14, proteine: 1.8, grassi: 0, ml: 330 },
+  { nome: "Birra artigianale (330ml)", grammi: 330, kcal: 172, carbo: 15, proteine: 2, grassi: 0, ml: 330 },
+  { nome: "Birra analcolica (330ml)", grammi: 330, kcal: 66, carbo: 13, proteine: 0.5, grassi: 0, ml: 330 },
+];
+
+// ─── APERITIVO ─────────────────────────────────────────────────────────────
+const APERITIVO = {
+  vini_bollicine: [
+    { nome: "Prosecco DOC 1 flûte (125ml)", grammi: 125, kcal: 90, carbo: 2.5, proteine: 0.1, grassi: 0 },
+    { nome: "Prosecco DOC 1 calice (150ml)", grammi: 150, kcal: 108, carbo: 3, proteine: 0.1, grassi: 0 },
+    { nome: "Vino bianco secco 1 calice (150ml)", grammi: 150, kcal: 108, carbo: 2, proteine: 0.1, grassi: 0 },
+    { nome: "Vino rosso 1 calice (150ml)", grammi: 150, kcal: 120, carbo: 2.5, proteine: 0.1, grassi: 0 },
+    { nome: "Champagne 1 flûte (125ml)", grammi: 125, kcal: 95, carbo: 2, proteine: 0.1, grassi: 0 },
+  ],
+  birra: [
+    { nome: "Birra chiara alla spina 1 boccale (400ml)", grammi: 400, kcal: 180, carbo: 14, proteine: 2, grassi: 0 },
+    { nome: "Birra chiara bottiglia (330ml)", grammi: 330, kcal: 148, carbo: 12, proteine: 1.6, grassi: 0 },
+    { nome: "Birra artigianale IPA (330ml)", grammi: 330, kcal: 195, carbo: 16, proteine: 2, grassi: 0 },
+    { nome: "Birra analcolica (330ml)", grammi: 330, kcal: 66, carbo: 13, proteine: 0.5, grassi: 0 },
+  ],
+  cocktail: [
+    // Top 10 cocktail più bevuti in Italia
+    { nome: "Aperol Spritz 🍊 (200ml)", grammi: 200, kcal: 168, carbo: 18, proteine: 0.2, grassi: 0 },
+    { nome: "Negroni (80ml)", grammi: 80, kcal: 196, carbo: 14, proteine: 0.1, grassi: 0 },
+    { nome: "Hugo (200ml)", grammi: 200, kcal: 138, carbo: 16, proteine: 0.2, grassi: 0 },
+    { nome: "Bellini (120ml)", grammi: 120, kcal: 102, carbo: 12, proteine: 0.3, grassi: 0 },
+    { nome: "Mojito (200ml)", grammi: 200, kcal: 168, carbo: 22, proteine: 0.5, grassi: 0 },
+    { nome: "Moscow Mule (200ml)", grammi: 200, kcal: 180, carbo: 20, proteine: 0.2, grassi: 0 },
+    { nome: "Gin Tonic (200ml)", grammi: 200, kcal: 155, carbo: 12, proteine: 0.1, grassi: 0 },
+    { nome: "Americano (150ml)", grammi: 150, kcal: 118, carbo: 10, proteine: 0.1, grassi: 0 },
+    { nome: "Margarita (120ml)", grammi: 120, kcal: 168, carbo: 14, proteine: 0.2, grassi: 0 },
+    { nome: "Cosmopolitan (100ml)", grammi: 100, kcal: 145, carbo: 11, proteine: 0.1, grassi: 0 },
+    // Extra comuni
+    { nome: "Campari Soda (100ml)", grammi: 100, kcal: 98, carbo: 11, proteine: 0.1, grassi: 0 },
+    { nome: "Spritz analcolico (200ml)", grammi: 200, kcal: 60, carbo: 14, proteine: 0.2, grassi: 0 },
+  ],
+  stuzzichini: [
+    { nome: "Olive (10 pz ~30g)", grammi: 30, kcal: 45, carbo: 1, proteine: 0.4, grassi: 4 },
+    { nome: "Chips patate (30g)", grammi: 30, kcal: 156, carbo: 18, proteine: 2, grassi: 9 },
+    { nome: "Patatine fritte (50g)", grammi: 50, kcal: 165, carbo: 20, proteine: 2, grassi: 9 },
+    { nome: "Pistacchi (30g)", grammi: 30, kcal: 174, carbo: 8, proteine: 6, grassi: 14 },
+    { nome: "Grissini (20g)", grammi: 20, kcal: 80, carbo: 14, proteine: 2, grassi: 2 },
+    { nome: "Crackers (30g)", grammi: 30, kcal: 130, carbo: 20, proteine: 3, grassi: 5 },
+    { nome: "Bruschetta al pomodoro (1 pz 60g)", grammi: 60, kcal: 120, carbo: 18, proteine: 3, grassi: 4 },
+    { nome: "Mini tramezzino (1 pz 40g)", grammi: 40, kcal: 105, carbo: 12, proteine: 5, grassi: 4 },
+  ],
+};
+
+// ─── CARBOIDRATI E PROTEINE PRANZO/CENA ────────────────────────────────────
+const CARBOIDRATI_PRANZO = [
+  { nome: "Pasta integrale (80g)", grammi: 80, kcal: 282, carbo: 58, proteine: 10, grassi: 1.2 },
+  { nome: "Pasta di semola (80g)", grammi: 80, kcal: 288, carbo: 60, proteine: 10, grassi: 1 },
+  { nome: "Riso integrale (80g)", grammi: 80, kcal: 272, carbo: 58, proteine: 6, grassi: 1.5 },
+  { nome: "Riso basmati (80g)", grammi: 80, kcal: 276, carbo: 61, proteine: 6, grassi: 0.5 },
+  { nome: "Riso venere (80g)", grammi: 80, kcal: 268, carbo: 55, proteine: 8, grassi: 2 },
+  { nome: "Farro (80g)", grammi: 80, kcal: 284, carbo: 58, proteine: 10, grassi: 1.5 },
+  { nome: "Cous Cous integrale (80g)", grammi: 80, kcal: 270, carbo: 55, proteine: 10, grassi: 1 },
+  { nome: "Grano Saraceno (80g)", grammi: 80, kcal: 276, carbo: 54, proteine: 10, grassi: 2 },
+  { nome: "Quinoa (70g)", grammi: 70, kcal: 242, carbo: 45, proteine: 9, grassi: 3 },
+  { nome: "Amaranto (70g)", grammi: 70, kcal: 245, carbo: 46, proteine: 9, grassi: 3 },
+  { nome: "Orzo perlato (80g)", grammi: 80, kcal: 270, carbo: 57, proteine: 8, grassi: 1 },
+  { nome: "Pane integrale (90g)", grammi: 90, kcal: 228, carbo: 44, proteine: 8, grassi: 2 },
+  { nome: "Lenticchie + Pane 40g", grammi: 240, kcal: 248, carbo: 42, proteine: 17, grassi: 1 },
+  { nome: "Ceci + Pane 40g", grammi: 240, kcal: 260, carbo: 40, proteine: 16, grassi: 4 },
+  { nome: "Fagioli Cannellini + Pane", grammi: 240, kcal: 250, carbo: 42, proteine: 16, grassi: 1 },
+  { nome: "Patate + Pane 40g", grammi: 240, kcal: 222, carbo: 48, proteine: 6, grassi: 0.5 },
+  { nome: "Pasta + Ceci (80g+100g)", grammi: 180, kcal: 340, carbo: 60, proteine: 16, grassi: 2 },
+  { nome: "Pasta + Lenticchie (80g+100g)", grammi: 180, kcal: 335, carbo: 58, proteine: 18, grassi: 2 },
+];
+
+const PROTEINE_PRANZO = [
+  { nome: "Tonno al naturale (100g)", grammi: 100, kcal: 101, proteine: 23, grassi: 1, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Salmone affumicato (50g)", grammi: 50, kcal: 110, proteine: 13, grassi: 6, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Gamberetti sgusciati (140g)", grammi: 140, kcal: 114, proteine: 24, grassi: 2, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Nasello/Merluzzo (140g)", grammi: 140, kcal: 126, proteine: 26, grassi: 2, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Totani/Seppie (140g)", grammi: 140, kcal: 118, proteine: 24, grassi: 2, carbo: 1, tipo: "🐟 Pesce" },
+  { nome: "Sgombro al naturale (100g)", grammi: 100, kcal: 160, proteine: 20, grassi: 9, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Polpo cotto (140g)", grammi: 140, kcal: 115, proteine: 21, grassi: 1.5, carbo: 3, tipo: "🐟 Pesce" },
+  { nome: "Petto di Pollo (120g)", grammi: 120, kcal: 143, proteine: 28, grassi: 3, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Petto di Tacchino (120g)", grammi: 120, kcal: 138, proteine: 27, grassi: 3, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Bresaola (60g)", grammi: 60, kcal: 94, proteine: 19, grassi: 2, carbo: 0, tipo: "🥩 Affettati" },
+  { nome: "Prosciutto Crudo Magro (50g)", grammi: 50, kcal: 105, proteine: 14, grassi: 5, carbo: 0, tipo: "🥩 Affettati" },
+  { nome: "Affettato Pollo/Tacchino (100g)", grammi: 100, kcal: 110, proteine: 22, grassi: 2, carbo: 1, tipo: "🥩 Affettati" },
+  { nome: "Uova (2)", grammi: 120, kcal: 148, proteine: 14, grassi: 10, carbo: 0, tipo: "🥚 Uova" },
+  { nome: "Ricotta light (100g) ⚠️max2/sett", grammi: 100, kcal: 105, proteine: 11, grassi: 5, carbo: 4, tipo: "🧀 Formaggi" },
+  { nome: "Formaggio stagionato (30g) ⚠️max2/sett", grammi: 30, kcal: 124, proteine: 8, grassi: 10, carbo: 0, tipo: "🧀 Formaggi" },
+  { nome: "Mezza Mozzarella Light ⚠️max2/sett", grammi: 62, kcal: 89, proteine: 10, grassi: 5, carbo: 1, tipo: "🧀 Formaggi" },
+  { nome: "Fiocchi di latte (120g)", grammi: 120, kcal: 96, proteine: 14, grassi: 2, carbo: 4, tipo: "🧀 Formaggi" },
+  { nome: "Tofu naturale (150g)", grammi: 150, kcal: 117, proteine: 14, grassi: 6, carbo: 2, tipo: "🌿 Vegetali" },
+  { nome: "Tofu affumicato (120g)", grammi: 120, kcal: 145, proteine: 16, grassi: 8, carbo: 1, tipo: "🌿 Vegetali" },
+  { nome: "Seitan (100g)", grammi: 100, kcal: 142, proteine: 25, grassi: 2, carbo: 5, tipo: "🌿 Vegetali" },
+  { nome: "Tempeh (100g)", grammi: 100, kcal: 195, proteine: 19, grassi: 11, carbo: 8, tipo: "🌿 Vegetali" },
+  { nome: "Edamame (120g)", grammi: 120, kcal: 154, proteine: 14, grassi: 7, carbo: 10, tipo: "🌿 Vegetali" },
+  { nome: "Lupini (100g)", grammi: 100, kcal: 119, proteine: 15, grassi: 3, carbo: 8, tipo: "🌿 Vegetali" },
+];
+
+const CARBOIDRATI_CENA = [
+  { nome: "Pane integrale (60g)", grammi: 60, kcal: 150, carbo: 29, proteine: 5, grassi: 1 },
+  { nome: "Patate lesse (180g)", grammi: 180, kcal: 142, carbo: 30, proteine: 4, grassi: 0.3 },
+  { nome: "Patate dolci (180g)", grammi: 180, kcal: 155, carbo: 36, proteine: 3, grassi: 0.2 },
+  { nome: "Pisellini crudi (250g)", grammi: 250, kcal: 198, carbo: 30, proteine: 16, grassi: 1 },
+  { nome: "Lenticchie cotte (180g)", grammi: 180, kcal: 178, carbo: 28, proteine: 14, grassi: 1 },
+  { nome: "Ceci cotti (180g)", grammi: 180, kcal: 196, carbo: 28, proteine: 12, grassi: 4 },
+  { nome: "Fagioli cannellini cotti (180g)", grammi: 180, kcal: 172, carbo: 28, proteine: 12, grassi: 1 },
+];
+
+const PROTEINE_CENA = [
+  { nome: "Pollo Petto (200g)", grammi: 200, kcal: 234, proteine: 46, grassi: 5, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Pollo Sovracoscia (150g)", grammi: 150, kcal: 188, proteine: 28, grassi: 8, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Tacchino Petto (200g)", grammi: 200, kcal: 228, proteine: 44, grassi: 5, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Coniglio (180g)", grammi: 180, kcal: 234, proteine: 38, grassi: 8, carbo: 0, tipo: "🍗 Carne bianca" },
+  { nome: "Bistecca Vitella (150g) ⚠️max1/sett", grammi: 150, kcal: 186, proteine: 30, grassi: 7, carbo: 0, tipo: "🥩 Carne rossa" },
+  { nome: "Tagliata (150g) ⚠️max1/sett", grammi: 150, kcal: 204, proteine: 30, grassi: 9, carbo: 0, tipo: "🥩 Carne rossa" },
+  { nome: "Bistecca Maiale (150g) ⚠️max1/sett", grammi: 150, kcal: 204, proteine: 28, grassi: 10, carbo: 0, tipo: "🥩 Carne rossa" },
+  { nome: "Tonno Fresco (150g)", grammi: 150, kcal: 186, proteine: 34, grassi: 5, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Orata (180g)", grammi: 180, kcal: 196, proteine: 34, grassi: 7, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Branzino (180g)", grammi: 180, kcal: 188, proteine: 34, grassi: 6, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Salmone fresco (150g)", grammi: 150, kcal: 280, proteine: 30, grassi: 18, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Nasello/Merluzzo (250g)", grammi: 250, kcal: 220, proteine: 46, grassi: 4, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Gamberi (200g)", grammi: 200, kcal: 170, proteine: 36, grassi: 2, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Cozze sgusciate (200g)", grammi: 200, kcal: 172, proteine: 28, grassi: 5, carbo: 8, tipo: "🐟 Pesce" },
+  { nome: "Polpo (200g)", grammi: 200, kcal: 164, proteine: 30, grassi: 2, carbo: 4, tipo: "🐟 Pesce" },
+  { nome: "Alici fresche (200g)", grammi: 200, kcal: 216, proteine: 36, grassi: 8, carbo: 0, tipo: "🐟 Pesce" },
+  { nome: "Uova (3)", grammi: 180, kcal: 222, proteine: 21, grassi: 15, carbo: 0, tipo: "🥚 Uova" },
+  { nome: "Uova 2 + Prosciutto (30g)", grammi: 150, kcal: 205, proteine: 21, grassi: 14, carbo: 0, tipo: "🥚 Uova" },
+  { nome: "Mozzarella Light (125g) ⚠️max2/sett", grammi: 125, kcal: 178, proteine: 20, grassi: 10, carbo: 2, tipo: "🧀 Formaggi" },
+  { nome: "Parmigiano/Grana (50g) ⚠️max2/sett", grammi: 50, kcal: 216, proteine: 15, grassi: 17, carbo: 0, tipo: "🧀 Formaggi" },
+  { nome: "Ricotta vaccina (120g) ⚠️max2/sett", grammi: 120, kcal: 168, proteine: 12, grassi: 12, carbo: 4, tipo: "🧀 Formaggi" },
+  { nome: "Provola/Scamorza (80g) ⚠️max2/sett", grammi: 80, kcal: 224, proteine: 18, grassi: 16, carbo: 1, tipo: "🧀 Formaggi" },
+  { nome: "Caciotta (70g) ⚠️max2/sett", grammi: 70, kcal: 210, proteine: 16, grassi: 16, carbo: 0, tipo: "🧀 Formaggi" },
+  { nome: "Pecorino (40g) ⚠️max2/sett", grammi: 40, kcal: 172, proteine: 10, grassi: 14, carbo: 0, tipo: "🧀 Formaggi" },
+  { nome: "Tofu naturale (200g)", grammi: 200, kcal: 156, proteine: 18, grassi: 8, carbo: 3, tipo: "🌿 Vegetali" },
+  { nome: "Seitan (150g)", grammi: 150, kcal: 213, proteine: 38, grassi: 3, carbo: 8, tipo: "🌿 Vegetali" },
+  { nome: "Tempeh (150g)", grammi: 150, kcal: 293, proteine: 29, grassi: 16, carbo: 12, tipo: "🌿 Vegetali" },
+];
+
+const VERDURE = [
+  { nome: "Insalata mista (250g)", grammi: 250, kcal: 30, carbo: 4, proteine: 2, grassi: 0.3 },
+  { nome: "Spinaci freschi (250g)", grammi: 250, kcal: 56, carbo: 5, proteine: 6, grassi: 1 },
+  { nome: "Rucola (100g)", grammi: 100, kcal: 25, carbo: 4, proteine: 3, grassi: 0.5 },
+  { nome: "Radicchio (250g)", grammi: 250, kcal: 40, carbo: 7, proteine: 3, grassi: 0.3 },
+  { nome: "Pomodori ramati (250g)", grammi: 250, kcal: 48, carbo: 8, proteine: 2, grassi: 0.5 },
+  { nome: "Pomodorini (250g)", grammi: 250, kcal: 50, carbo: 9, proteine: 2, grassi: 0.5 },
+  { nome: "Zucchine (250g)", grammi: 250, kcal: 46, carbo: 7, proteine: 3, grassi: 0.5 },
+  { nome: "Broccoli (250g)", grammi: 250, kcal: 84, carbo: 12, proteine: 7, grassi: 1 },
+  { nome: "Cavolfiore (250g)", grammi: 250, kcal: 62, carbo: 10, proteine: 5, grassi: 0.5 },
+  { nome: "Melanzane (250g)", grammi: 250, kcal: 50, carbo: 8, proteine: 3, grassi: 0.5 },
+  { nome: "Peperoni misti (250g)", grammi: 250, kcal: 72, carbo: 14, proteine: 3, grassi: 0.4 },
+  { nome: "Funghi champignon (250g)", grammi: 250, kcal: 50, carbo: 5, proteine: 7, grassi: 0.5 },
+  { nome: "Finocchi (250g)", grammi: 250, kcal: 50, carbo: 9, proteine: 3, grassi: 0.5 },
+  { nome: "Cetrioli (250g)", grammi: 250, kcal: 33, carbo: 5, proteine: 2, grassi: 0.3 },
+  { nome: "Carote (200g)", grammi: 200, kcal: 86, carbo: 18, proteine: 2, grassi: 0.4 },
+  { nome: "Asparagi (250g)", grammi: 250, kcal: 55, carbo: 8, proteine: 6, grassi: 0.5 },
+  { nome: "Fagiolini (250g)", grammi: 250, kcal: 70, carbo: 12, proteine: 5, grassi: 0.5 },
+  { nome: "Cime di rapa (250g)", grammi: 250, kcal: 65, carbo: 9, proteine: 6, grassi: 1 },
+  { nome: "Cavolo nero (200g)", grammi: 200, kcal: 62, carbo: 8, proteine: 5, grassi: 1 },
+  { nome: "Bieta/Bietola (250g)", grammi: 250, kcal: 48, carbo: 8, proteine: 4, grassi: 0.5 },
+  { nome: "Cicoria (250g)", grammi: 250, kcal: 45, carbo: 8, proteine: 4, grassi: 0.5 },
+  { nome: "Carciofi (200g)", grammi: 200, kcal: 80, carbo: 14, proteine: 5, grassi: 0.3 },
+  { nome: "Zucca gialla (250g)", grammi: 250, kcal: 68, carbo: 14, proteine: 2, grassi: 0.3 },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS & COSTANTI
+// ═══════════════════════════════════════════════════════════════════════════
+const PIANO_KCAL = 1600;
+const TARGET = { carbo: 150, proteine: 80, grassi: 65, verdure: 250, fibre: 25 };
+
+const C = {
+  bg: "#0d1821", card: "#142030", card2: "#1a2840", border: "#1d3045",
+  accent: "#00e5b4", accentDim: "#00e5b415",
+  carbo: "#f59e0b", proteine: "#60a5fa", grassi: "#f472b6",
+  green: "#4ade80", red: "#f87171", orange: "#fb923c",
+  violet: "#a78bfa", yellow: "#fbbf24", pink: "#ec4899",
+  text: "#e2e8f0", muted: "#64748b",
+};
+
+function usePersist(key, init) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
+    catch { return init; }
+  });
+  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }, [key, val]);
+  return [val, setVal];
+}
+
+const todayStr = () => new Date().toISOString().split("T")[0];
+const nowLabel = () => {
+  const d = new Date();
+  return `${d.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} ${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
+};
+const r2 = n => Math.round(n * 10) / 10;
+
+// Esporta diario come CSV scaricabile (compatibile Excel)
+function esportaDiarioCSV(diario, pesi) {
+  const rows = [];
+  // Header
+  rows.push(["Data", "Giorno", "Tipo Pasto", "Alimento", "Grammi", "Kcal", "Carbo (g)", "Proteine (g)", "Grassi (g)", "Ora"]);
+
+  const dateOrdinate = Object.keys(diario).sort();
+  for (const data of dateOrdinate) {
+    const log = diario[data] || [];
+    if (log.length === 0) continue;
+    const giorno = new Date(data + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+    for (const item of log) {
+      const r = item.qty / item.grammiBase;
+      rows.push([
+        data,
+        giorno,
+        item.cat || "-",
+        item.nome,
+        item.qty,
+        r2(item.kcal * r),
+        r2(item.carbo * r),
+        r2(item.proteine * r),
+        r2(item.grassi * r),
+        item.ora || "-"
+      ]);
+    }
+    // Riga totale giorno
+    const totD = log.reduce((a, i) => {
+      const r = i.qty / i.grammiBase;
+      return { kcal: a.kcal + i.kcal*r, carbo: a.carbo + i.carbo*r, prot: a.prot + i.proteine*r, gras: a.gras + i.grassi*r };
+    }, { kcal:0, carbo:0, prot:0, gras:0 });
+    rows.push([data, giorno, ">>> TOTALE GIORNO", "", "", r2(totD.kcal), r2(totD.carbo), r2(totD.prot), r2(totD.gras), ""]);
+    rows.push([]); // riga vuota separatore
+  }
+
+  // Foglio peso
+  rows.push([]);
+  rows.push(["=== STORICO PESO ==="]);
+  rows.push(["Data", "Peso (kg)", "Nota"]);
+  for (const p of pesi) {
+    rows.push([p.data, p.kg, p.nota || ""]);
+  }
+
+  // Converti in CSV con BOM per Excel italiano (separatore ;)
+  const csv = "﻿" + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("
+");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const oggi = new Date().toISOString().split("T")[0];
+  a.href = url;
+  a.download = `NutriGabri_Diario_${oggi}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+function MacroBar({ label, current, target, color, tolerance = 0 }) {
+  const pct = Math.min((current / target) * 100, 100);
+  // Verde se entro tolleranza (+/- tolerance), rosso se oltre target+tolerance
+  const inRange = target > 0 && current >= (target - tolerance) && current <= (target + tolerance);
+  const over = current > target + tolerance;
+  const barColor = inRange ? C.green : over ? C.red : color;
+  const textColor = inRange ? C.green : over ? C.red : color;
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+        <span style={{ fontSize: 11, color: C.muted, fontFamily: "DM Sans, sans-serif" }}>{label}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {inRange && <span style={{ fontSize: 9, color: C.green, fontWeight: 800 }}>✓</span>}
+          <span style={{ fontSize: 11, fontWeight: 700, color: textColor, fontFamily: "DM Mono, monospace" }}>{r2(current)}{target > 0 ? `g / ${target}g` : "g"}</span>
+        </div>
+      </div>
+      <div style={{ height: 5, background: C.border, borderRadius: 99, position: "relative" }}>
+        <div style={{ height: "100%", borderRadius: 99, background: barColor, width: `${pct}%`, transition: "width 0.4s", boxShadow: `0 0 6px ${barColor}88` }} />
+        {/* Tolerance markers */}
+        {tolerance > 0 && target > 0 && (
+          <>
+            <div style={{ position: "absolute", top: -1, left: `${Math.min(((target-tolerance)/target)*100,100)}%`, width: 2, height: 7, background: `${C.green}88`, borderRadius: 1 }} />
+            <div style={{ position: "absolute", top: -1, left: `${Math.min(((target+tolerance)/target)*100,100)}%`, width: 2, height: 7, background: `${C.green}88`, borderRadius: 1 }} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DonutChart({ kcal, target }) {
+  const pct = Math.min(kcal / target, 1);
+  const r = 52, cx = 68, cy = 68, circ = 2 * Math.PI * r;
+  const over = kcal > target;
+  return (
+    <div style={{ position: "relative", width: 136, height: 136, flexShrink: 0 }}>
+      <svg width={136} height={136}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={11} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={over ? C.red : C.accent} strokeWidth={11}
+          strokeDasharray={`${pct * circ} ${circ}`} strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: "stroke-dasharray 0.5s", filter: `drop-shadow(0 0 5px ${over ? C.red : C.accent})` }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 20, fontWeight: 800, color: over ? C.red : C.text, fontFamily: "DM Mono, monospace", lineHeight: 1 }}>{r2(kcal)}</span>
+        <span style={{ fontSize: 9, color: C.muted }}>/ {target} kcal</span>
+      </div>
+    </div>
+  );
+}
+
+function SearchSelect({ label, value, onChange, items, color = C.accent, groupBy = null }) {
+  const [open, setOpen] = useState(false);
+  const [cerca, setCerca] = useState("");
+  const filtrati = items.filter(i => i.nome.toLowerCase().includes(cerca.toLowerCase()));
+  const gruppi = groupBy ? filtrati.reduce((acc, i) => { const g = i[groupBy] || "Altro"; if (!acc[g]) acc[g] = []; acc[g].push(i); return acc; }, {}) : null;
+  const sel = items.find(i => i.nome === value);
+  return (
+    <div style={{ marginBottom: 10, position: "relative" }}>
+      {label && <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, fontWeight: 600, fontFamily: "DM Sans, sans-serif" }}>{label}</div>}
+      <div onClick={() => setOpen(!open)} style={{ padding: "9px 12px", borderRadius: 10, background: "#0d1821", cursor: "pointer", border: `1px solid ${value ? color : C.border}`, fontSize: 12, color: value ? C.text : C.muted, fontFamily: "DM Sans, sans-serif", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "90%" }}>{sel ? sel.nome : "— seleziona —"}</span>
+        <span style={{ color: C.muted, fontSize: 10, flexShrink: 0 }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div style={{ position: "absolute", zIndex: 200, background: C.card2, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxHeight: 280, display: "flex", flexDirection: "column", boxShadow: "0 8px 32px #00000099" }}>
+          <div style={{ padding: "8px 10px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <input autoFocus placeholder="🔍 cerca..." value={cerca} onChange={e => setCerca(e.target.value)}
+              style={{ width: "100%", background: "#0d1821", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 12, fontFamily: "DM Sans, sans-serif", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            <div onClick={() => { onChange(null); setOpen(false); setCerca(""); }} style={{ padding: "8px 12px", cursor: "pointer", fontSize: 12, color: C.muted, fontFamily: "DM Sans, sans-serif" }}>— nessuno —</div>
+            {gruppi && !cerca ? Object.entries(gruppi).map(([g, gItems]) => (
+              <div key={g}>
+                <div style={{ padding: "5px 12px", fontSize: 10, fontWeight: 800, color, background: "#0d182288", fontFamily: "DM Sans, sans-serif" }}>{g}</div>
+                {gItems.map(item => (
+                  <div key={item.nome} onClick={() => { onChange(item.nome); setOpen(false); setCerca(""); }}
+                    style={{ padding: "8px 12px 8px 20px", cursor: "pointer", fontSize: 12, color: C.text, fontFamily: "DM Sans, sans-serif", background: value === item.nome ? C.accentDim : "transparent", display: "flex", justifyContent: "space-between" }}>
+                    <span>{item.nome}</span>
+                    <span style={{ color: C.muted, fontFamily: "DM Mono, monospace", fontSize: 10, flexShrink: 0, paddingLeft: 8 }}>{item.kcal}kcal</span>
+                  </div>
+                ))}
+              </div>
+            )) : filtrati.map(item => (
+              <div key={item.nome} onClick={() => { onChange(item.nome); setOpen(false); setCerca(""); }}
+                style={{ padding: "8px 12px", cursor: "pointer", fontSize: 12, color: C.text, fontFamily: "DM Sans, sans-serif", background: value === item.nome ? C.accentDim : "transparent", display: "flex", justifyContent: "space-between" }}>
+                <span>{item.nome}</span>
+                <span style={{ color: C.muted, fontFamily: "DM Mono, monospace", fontSize: 10, flexShrink: 0, paddingLeft: 8 }}>{item.kcal}kcal</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB: DIARIO — navigazione per data, pasti raggruppati, solo da Pasto
+// ═══════════════════════════════════════════════════════════════════════════
+
+function gruppaPasto(items) {
+  const ORDINE = ["🌅 Colazione", "🍎 Spuntino", "☀️ Pranzo", "🌙 Cena", "🥂 Aperitivo"];
+  const mappa = {};
+  for (const item of items) {
+    let gruppo = "📦 Altro";
+    const cat = item.cat || "";
+    if (cat.includes("Colazione")) gruppo = "🌅 Colazione";
+    else if (cat.includes("Spuntino")) gruppo = "🍎 Spuntino";
+    else if (cat.includes("Pranzo") || cat.includes("pranzo")) gruppo = "☀️ Pranzo";
+    else if (cat.includes("Cena") || cat.includes("cena")) gruppo = "🌙 Cena";
+    else if (cat.includes("Aperitivo")) gruppo = "🥂 Aperitivo";
+    if (!mappa[gruppo]) mappa[gruppo] = [];
+    mappa[gruppo].push(item);
+  }
+  const result = [];
+  for (const k of ORDINE) { if (mappa[k]) result.push([k, mappa[k]]); }
+  if (mappa["📦 Altro"]) result.push(["📦 Altro", mappa["📦 Altro"]]);
+  return result;
+}
+
+const PASTO_COLORS = {
+  "🌅 Colazione": "#f59e0b",
+  "🍎 Spuntino":  "#a78bfa",
+  "☀️ Pranzo":    "#00e5b4",
+  "🌙 Cena":      "#60a5fa",
+  "🥂 Aperitivo": "#fbbf24",
+  "📦 Altro":     "#64748b",
+};
+const PASTO_BG = {
+  "🌅 Colazione": "#f59e0b18",
+  "🍎 Spuntino":  "#a78bfa18",
+  "☀️ Pranzo":    "#00e5b418",
+  "🌙 Cena":      "#60a5fa18",
+  "🥂 Aperitivo": "#fbbf2418",
+  "📦 Altro":     "#64748b18",
+};
+
+function dateDisponibili(diario) {
+  const oggi = todayStr();
+  const keys = Object.keys(diario).filter(k => (diario[k] || []).length > 0);
+  const set = new Set([...keys, oggi]);
+  return [...set].sort((a, b) => b.localeCompare(a));
+}
+
+function formatDataLabel(dateStr) {
+  const oggi = todayStr();
+  const ieri = new Date(); ieri.setDate(ieri.getDate() - 1);
+  const ieriStr = ieri.toISOString().split("T")[0];
+  if (dateStr === oggi) return "Oggi";
+  if (dateStr === ieriStr) return "Ieri";
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
+}
+function formatDataLunga(dateStr) {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function DiarioTab({ diario, setDiario }) {
+  const oggi = todayStr();
+  const [dataVista, setDataVista] = useState(oggi);
+  const [expandedGruppi, setExpandedGruppi] = useState({});
+
+  const log = diario[dataVista] || [];
+  const gruppi = gruppaPasto(log);
+  const isOggi = dataVista === oggi;
+
+  const tot = log.reduce((acc, i) => {
+    const r = i.qty / i.grammiBase;
+    const isVerd = (i.cat || "").includes("Verdur") || (i.nome || "").toLowerCase().includes("verdur") || (i.nome || "").toLowerCase().includes("insalat") || (i.nome || "").toLowerCase().includes("spinac") || (i.nome || "").toLowerCase().includes("broccol");
+    return {
+      kcal: acc.kcal + i.kcal * r,
+      carbo: acc.carbo + i.carbo * r,
+      proteine: acc.proteine + i.proteine * r,
+      grassi: acc.grassi + i.grassi * r,
+      verdure: acc.verdure + (isVerd ? i.qty * r : 0),
+    };
+  }, { kcal: 0, carbo: 0, proteine: 0, grassi: 0, verdure: 0 });
+
+  const date = dateDisponibili(diario);
+
+  function toggleGruppo(g) {
+    setExpandedGruppi(prev => ({ ...prev, [g]: prev[g] === false ? true : false }));
+  }
+  function rimuoviItem(id) {
+    setDiario({ ...diario, [dataVista]: log.filter(i => i.id !== id) });
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: C.muted, fontFamily: "DM Sans, sans-serif", marginBottom: 2 }}>{formatDataLunga(dataVista)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 19, fontWeight: 800, color: C.text, fontFamily: "Playfair Display, serif" }}>
+            {isOggi ? "Diario di Oggi" : "Storico"}
+          </div>
+          {isOggi && (
+            <div style={{ fontSize: 10, color: C.accent, background: C.accentDim, padding: "4px 10px", borderRadius: 99, fontWeight: 700, fontFamily: "DM Sans, sans-serif" }}>
+              Aggiungi da Pasto
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Scrollabile orizzontale date */}
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 14, scrollbarWidth: "none" }}>
+        {date.map(d => (
+          <button key={d} onClick={() => { setDataVista(d); setExpandedGruppi({}); }} style={{
+            flexShrink: 0, padding: "7px 13px", borderRadius: 99, border: "none", cursor: "pointer",
+            background: dataVista === d ? C.accent : C.card,
+            color: dataVista === d ? "#0d1821" : C.muted,
+            fontWeight: 800, fontSize: 11, fontFamily: "DM Sans, sans-serif",
+            boxShadow: dataVista === d ? `0 0 8px ${C.accent}55` : "none",
+            minWidth: 50, textAlign: "center",
+          }}>
+            <div>{formatDataLabel(d)}</div>
+            {(diario[d] || []).length > 0 && d !== dataVista && (
+              <div style={{ fontSize: 8, color: C.muted, marginTop: 1 }}>{(diario[d] || []).length} voci</div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Macros dashboard */}
+      <div style={{ background: C.card, borderRadius: 18, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <DonutChart kcal={tot.kcal} target={PIANO_KCAL} />
+          <div style={{ flex: 1 }}>
+            <MacroBar label="Carboidrati" current={tot.carbo} target={TARGET.carbo} color={C.carbo} tolerance={10} />
+            <MacroBar label="Proteine" current={tot.proteine} target={TARGET.proteine} color={C.proteine} tolerance={10} />
+            <MacroBar label="Grassi" current={tot.grassi} target={TARGET.grassi} color={C.grassi} tolerance={10} />
+            <MacroBar label="Verdure" current={tot.verdure} target={TARGET.verdure} color={C.green} tolerance={30} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+          {[
+            { label: isOggi ? `${r2(PIANO_KCAL - tot.kcal)} kcal rimanenti` : `${r2(tot.kcal)} kcal totali`, ok: tot.kcal <= PIANO_KCAL },
+            { label: `Proteine ${tot.proteine >= TARGET.proteine * 0.75 ? "✓" : "⚠️ basse"}`, ok: tot.proteine >= TARGET.proteine * 0.75 },
+            { label: `${gruppi.length} pasti registrati`, ok: true },
+          ].map(({ label, ok }, i) => (
+            <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 99, background: ok ? "#4ade8022" : "#f8717122", color: ok ? C.green : C.red, fontWeight: 700, fontFamily: "DM Sans, sans-serif" }}>{label}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Esporta hint - solo se ci sono dati */}
+      {Object.keys(diario).some(k => (diario[k]||[]).length > 0) && (
+        <div style={{ background: "#4ade8012", border: "1px solid #4ade8033", borderRadius: 10, padding: "8px 13px", marginBottom: 10, fontSize: 11, color: C.green, fontFamily: "DM Sans, sans-serif", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>📊 Hai dati da condividere con la nutrizionista!</span>
+          <span style={{ color: C.muted, fontSize: 10 }}>Esporta da ⚖️ Peso</span>
+        </div>
+      )}
+      {/* Avviso giorno passato */}
+      {!isOggi && (
+        <div style={{ background: "#60a5fa18", border: "1px solid #60a5fa44", borderRadius: 12, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#93c5fd", fontFamily: "DM Sans, sans-serif" }}>
+          Stai vedendo lo storico di <strong>{formatDataLabel(dataVista)}</strong>. Per aggiungere pasti vai su <strong>Pasto</strong> e scegli la data.
+        </div>
+      )}
+
+      {/* Pasti raggruppati */}
+      {log.length === 0 ? (
+        <div style={{ textAlign: "center", color: C.muted, padding: 40, fontFamily: "DM Sans, sans-serif", fontSize: 13 }}>
+          {isOggi
+            ? <><div style={{ fontSize: 28, marginBottom: 8 }}>🍽️</div>Nessun pasto oggi<br /><span style={{ fontSize: 11, color: C.accent }}>Vai su Pasto per comporre i tuoi pasti!</span></>
+            : <><div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>Nessun dato per questo giorno</>
+          }
+        </div>
+      ) : (
+        gruppi.map(([gruppo, items]) => {
+          const totG = items.reduce((a, i) => {
+            const r = i.qty / i.grammiBase;
+            return { kcal: a.kcal + i.kcal * r, carbo: a.carbo + i.carbo * r, proteine: a.proteine + i.proteine * r, grassi: a.grassi + i.grassi * r };
+          }, { kcal: 0, carbo: 0, proteine: 0, grassi: 0 });
+          const col = PASTO_COLORS[gruppo] || C.muted;
+          const bg = PASTO_BG[gruppo] || "#64748b18";
+          const aperto = expandedGruppi[gruppo] !== false;
+
+          return (
+            <div key={gruppo} style={{ marginBottom: 10 }}>
+              <div onClick={() => toggleGruppo(gruppo)} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                background: bg, border: `1px solid ${col}44`,
+                borderRadius: aperto ? "14px 14px 0 0" : 14,
+                padding: "11px 14px", cursor: "pointer", userSelect: "none",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: col, fontFamily: "DM Sans, sans-serif" }}>{gruppo}</span>
+                  <span style={{ fontSize: 10, color: col, background: `${col}22`, padding: "2px 7px", borderRadius: 99, fontFamily: "DM Mono, monospace", fontWeight: 700 }}>{items.length} alim.</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: col, fontFamily: "DM Mono, monospace" }}>{r2(totG.kcal)} kcal</div>
+                  <div style={{ fontSize: 9, color: `${col}bb`, fontFamily: "DM Mono, monospace" }}>
+                    C:{r2(totG.carbo)}g P:{r2(totG.proteine)}g G:{r2(totG.grassi)}g {aperto ? "▲" : "▼"}
+                  </div>
+                </div>
+              </div>
+              {aperto && (
+                <div style={{ border: `1px solid ${col}33`, borderTop: "none", borderRadius: "0 0 14px 14px", overflow: "hidden" }}>
+                  {items.map((item, idx) => {
+                    const ratio = item.qty / item.grammiBase;
+                    return (
+                      <div key={item.id} style={{
+                        background: C.card, padding: "9px 14px",
+                        borderBottom: idx < items.length - 1 ? `1px solid ${C.border}` : "none",
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: "DM Sans, sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.nome}</div>
+                          <div style={{ fontSize: 10, color: C.muted, fontFamily: "DM Mono, monospace" }}>
+                            {item.qty}g · {r2(item.kcal * ratio)}kcal · C:{r2(item.carbo * ratio)}g P:{r2(item.proteine * ratio)}g G:{r2(item.grassi * ratio)}g
+                          </div>
+                          {item.ora && <div style={{ fontSize: 9, color: `${col}99`, fontFamily: "DM Mono, monospace", marginTop: 1 }}>🕐 {item.ora}</div>}
+                        </div>
+                        <button onClick={() => rimuoviItem(item.id)} style={{ background: "#f8717118", color: C.red, border: "none", borderRadius: 7, padding: "5px 9px", cursor: "pointer", fontSize: 13, flexShrink: 0 }}>✕</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+
+      {log.length > 0 && isOggi && (
+        <div style={{ marginTop: 8, padding: "10px 14px", background: C.accentDim, borderRadius: 12, fontSize: 11, color: C.accent, fontFamily: "DM Sans, sans-serif", textAlign: "center" }}>
+          Tocca un gruppo per collassarlo · Vai su Pasto per aggiungere
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB: COMPONI PASTO — con add-to-diary
+// ═══════════════════════════════════════════════════════════════════════════
+function PastoTab({ diario, setDiario }) {
+  const [tipoPasto, setTipoPasto] = useState("pranzo");
+
+  // Pranzo/Cena
+  const [selCarbo, setSelCarbo] = useState(null);
+  const [selProt1, setSelProt1] = useState(null);
+  const [selProt2, setSelProt2] = useState(null);
+  const [split, setSplit] = useState(70);
+  const [selVerd, setSelVerd] = useState(null);
+  const [olio, setOlio] = useState(true);
+  const [selBevanda, setSelBevanda] = useState(null);
+  const [selFrutta, setSelFrutta] = useState(null);
+  const [selFruttaSecca, setSelFruttaSecca] = useState(null);
+
+  // Colazione
+  const [colComp, setColComp] = useState([null, null, null, null]);
+
+  // Spuntino
+  const [spuntComp, setSpuntComp] = useState([null, null]);
+
+  // Aperitivo
+  const [aperItems, setAperItems] = useState([null, null, null]);
+
+  const [addedToast, setAddedToast] = useState(false);
+
+  const TUTTE_COL = [...COLAZIONI.proteiche, ...COLAZIONI.carboidrati, ...COLAZIONI.grassi_dolci, ...COLAZIONI.bevande, ...COLAZIONI.frutta];
+  const TUTTI_SPUNT = [...SPUNTINI.frutta_secca, ...SPUNTINI.proteico, ...SPUNTINI.frutta, ...SPUNTINI.snack_salato];
+  const TUTTI_APER = [...APERITIVO.vini_bollicine, ...APERITIVO.birra, ...APERITIVO.cocktail, ...APERITIVO.stuzzichini];
+  const PROTS = tipoPasto === "pranzo" ? PROTEINE_PRANZO : PROTEINE_CENA;
+  const CARBS = tipoPasto === "pranzo" ? CARBOIDRATI_PRANZO : CARBOIDRATI_CENA;
+
+  function calcPasto() {
+    let kcal = 0, carbo = 0, proteine = 0, grassi = 0, items = [];
+    const add = (db, nome, r = 1) => { const i = db.find(x => x.nome === nome); if (i) { kcal += i.kcal * r; carbo += i.carbo * r; proteine += i.proteine * r; grassi += i.grassi * r; items.push({ nome: i.nome, grammi: Math.round(i.grammi * r), kcal: i.kcal, carbo: i.carbo, proteine: i.proteine, grassi: i.grassi, grammiBase: i.grammi }); } };
+
+    if (tipoPasto === "colazione") {
+      colComp.forEach(n => n && add(TUTTE_COL, n));
+    } else if (tipoPasto === "spuntino") {
+      spuntComp.forEach(n => n && add(TUTTI_SPUNT, n));
+    } else if (tipoPasto === "aperitivo") {
+      aperItems.forEach(n => n && add(TUTTI_APER, n));
+    } else {
+      if (selCarbo) add(CARBS, selCarbo);
+      if (selProt1) add(PROTS, selProt1, selProt2 ? split / 100 : 1);
+      if (selProt2) add(PROTS, selProt2, (100 - split) / 100);
+      if (selVerd) add(VERDURE, selVerd);
+      if (olio) { const og = tipoPasto === "pranzo" ? 10 : 20; kcal += og * 9; grassi += og; items.push({ nome: `Olio EVO (${og}g)`, grammi: og, kcal: og * 9, carbo: 0, proteine: 0, grassi: og, grammiBase: og }); }
+      if (selBevanda) add(BEVANDE_PASTO, selBevanda);
+      if (selFrutta) add(FRUTTA_DOPO_PASTO, selFrutta);
+      if (selFruttaSecca) add(FRUTTA_SECCA_DOPO_PASTO, selFruttaSecca);
+    }
+    return { kcal: r2(kcal), carbo: r2(carbo), proteine: r2(proteine), grassi: r2(grassi), items };
+  }
+
+  const pasto = calcPasto();
+  const hasContent = pasto.items.length > 0;
+  const TIPO_LABELS = { colazione: "🌅 Colazione", pranzo: "☀️ Pranzo", cena: "🌙 Cena", spuntino: "🍎 Spuntino", aperitivo: "🥂 Aperitivo" };
+
+  const [dataTarget, setDataTarget] = useState(todayStr());
+
+  function addToDiary() {
+    const key = dataTarget;
+    const log = diario[key] || [];
+    const isOggi = key === todayStr();
+    const oraLabel = isOggi ? nowLabel() : new Date(key + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + " (inserito ora)";
+    const newItems = pasto.items.map(item => ({
+      id: Date.now() + Math.random(),
+      nome: item.nome,
+      qty: item.grammi,
+      grammiBase: item.grammiBase,
+      kcal: item.kcal,
+      carbo: item.carbo,
+      proteine: item.proteine,
+      grassi: item.grassi,
+      cat: TIPO_LABELS[tipoPasto],
+      ora: oraLabel,
+    }));
+    setDiario({ ...diario, [key]: [...log, ...newItems] });
+    // Reset tutti i campi del pasto
+    setSelCarbo(null); setSelProt1(null); setSelProt2(null); setSplit(70);
+    setSelVerd(null); setOlio(true); setSelBevanda(null);
+    setSelFrutta(null); setSelFruttaSecca(null);
+    setColComp([null, null, null, null]);
+    setSpuntComp([null, null]);
+    setAperItems([null, null, null]);
+    setAddedToast(true);
+    setTimeout(() => setAddedToast(false), 2500);
+  }
+
+  const COL_LABELS = [
+    { l: "Proteina", cat: COLAZIONI.proteiche },
+    { l: "Carboidrato", cat: COLAZIONI.carboidrati },
+    { l: "Condimento", cat: COLAZIONI.grassi_dolci },
+    { l: "Bevanda", cat: COLAZIONI.bevande },
+  ];
+
+  const SPUNT_LABELS = [
+    { l: "Componente 1", cat: TUTTI_SPUNT },
+    { l: "Componente 2 (opzionale)", cat: TUTTI_SPUNT },
+  ];
+
+  const APER_LABELS = [
+    { l: "Drink principale", cat: [...APERITIVO.vini_bollicine, ...APERITIVO.birra, ...APERITIVO.cocktail] },
+    { l: "Secondo drink (opzionale)", cat: [...APERITIVO.vini_bollicine, ...APERITIVO.birra, ...APERITIVO.cocktail] },
+    { l: "Stuzzichino (opzionale)", cat: APERITIVO.stuzzichini },
+  ];
+
+  return (
+    <div>
+      <div style={{ fontSize: 19, fontWeight: 800, color: C.text, marginBottom: 14, fontFamily: "Playfair Display, serif" }}>Componi il Pasto</div>
+
+      {/* Toast */}
+      {addedToast && (
+        <div style={{ background: C.green, color: "#0d1821", borderRadius: 12, padding: "10px 16px", marginBottom: 12, fontWeight: 800, fontSize: 13, fontFamily: "DM Sans, sans-serif", textAlign: "center", boxShadow: `0 0 16px ${C.green}55` }}>
+          ✅ Pasto aggiunto al diario! ({nowLabel()})
+        </div>
+      )}
+
+      {/* Tipo pasto */}
+      <div style={{ display: "flex", gap: 5, marginBottom: 14, flexWrap: "wrap" }}>
+        {Object.entries(TIPO_LABELS).map(([k, l]) => (
+          <button key={k} onClick={() => setTipoPasto(k)} style={{
+            flex: 1, minWidth: 60, padding: "9px 6px", borderRadius: 11, border: "none", cursor: "pointer",
+            background: tipoPasto === k ? (k === "aperitivo" ? C.yellow : k === "spuntino" ? C.violet : C.accent) : C.card,
+            color: tipoPasto === k ? "#0d1821" : C.muted,
+            fontWeight: 800, fontSize: 11, fontFamily: "DM Sans, sans-serif",
+            boxShadow: tipoPasto === k ? `0 0 10px ${k === "aperitivo" ? C.yellow : k === "spuntino" ? C.violet : C.accent}55` : "none"
+          }}>{l}</button>
+        ))}
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 18, padding: 16, marginBottom: 12, border: `1px solid ${C.border}` }}>
+
+        {/* ─── COLAZIONE ─── */}
+        {tipoPasto === "colazione" && (
+          <>
+            <div style={{ fontSize: 12, color: C.violet, fontWeight: 700, marginBottom: 12, fontFamily: "DM Sans, sans-serif", background: "#a78bfa15", padding: "8px 12px", borderRadius: 10 }}>
+              💡 Combina fino a 4 componenti. Cornetto o pane+burro+marmellata → elimina frutto e noci dal pranzo.
+            </div>
+            {COL_LABELS.map((lc, idx) => (
+              <SearchSelect key={idx} label={lc.l} value={colComp[idx]} onChange={v => { const n = [...colComp]; n[idx] = v; setColComp(n); }} items={lc.cat} color={C.violet} />
+            ))}
+            <SearchSelect label="🍓 Frutta" value={colComp[3]} onChange={v => { const n = [...colComp]; n[3] = v; setColComp(n); }} items={COLAZIONI.frutta} color={C.violet} />
+          </>
+        )}
+
+        {/* ─── PRANZO / CENA ─── */}
+        {(tipoPasto === "pranzo" || tipoPasto === "cena") && (
+          <>
+            <SearchSelect label="🌾 Carboidrato" value={selCarbo} onChange={setSelCarbo} items={CARBS} color={C.carbo} />
+            <SearchSelect label="🥩 Proteina principale" value={selProt1} onChange={setSelProt1} items={PROTS} color={C.proteine} groupBy="tipo" />
+            <SearchSelect label="🥚 Seconda proteina (opzionale)" value={selProt2} onChange={setSelProt2} items={PROTS.filter(i => i.nome !== selProt1)} color={C.grassi} groupBy="tipo" />
+            {selProt1 && selProt2 && (
+              <div style={{ background: "#0d1821", borderRadius: 12, padding: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 8, fontFamily: "DM Sans, sans-serif" }}>⚖️ Dividi le dosi</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginBottom: 4, fontFamily: "DM Mono, monospace" }}>
+                  <span style={{ color: C.proteine }}>{selProt1.split(" ")[0]}: {split}% → {Math.round((PROTS.find(i => i.nome === selProt1)?.grammi || 0) * split / 100)}g</span>
+                  <span style={{ color: C.grassi }}>{selProt2.split(" ")[0]}: {100 - split}% → {Math.round((PROTS.find(i => i.nome === selProt2)?.grammi || 0) * (100 - split) / 100)}g</span>
+                </div>
+                <input type="range" min={10} max={90} value={split} onChange={e => setSplit(+e.target.value)} style={{ width: "100%", accentColor: C.accent }} />
+              </div>
+            )}
+            <SearchSelect label="🥦 Verdura (250g base)" value={selVerd} onChange={setSelVerd} items={VERDURE} color={C.green} />
+            <SearchSelect label="🍷 Bevanda (opzionale)" value={selBevanda} onChange={setSelBevanda} items={BEVANDE_PASTO} color={C.violet} />
+            <SearchSelect label="🍎 Frutto dopo pasto (opzionale)" value={selFrutta} onChange={setSelFrutta} items={FRUTTA_DOPO_PASTO} color={C.green} />
+            <SearchSelect label="🥜 Frutta secca / crema (opzionale — cucchiaini)" value={selFruttaSecca} onChange={setSelFruttaSecca} items={FRUTTA_SECCA_DOPO_PASTO} color={C.carbo} />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginTop: 6 }}>
+              <input type="checkbox" checked={olio} onChange={e => setOlio(e.target.checked)} style={{ accentColor: C.accent, width: 15, height: 15 }} />
+              <span style={{ fontSize: 12, color: C.muted, fontFamily: "DM Sans, sans-serif" }}>🫒 Olio EVO ({tipoPasto === "pranzo" ? "1 cucchiaio — 10g" : "2 cucchiai — 20g"})</span>
+            </label>
+          </>
+        )}
+
+        {/* ─── SPUNTINO ─── */}
+        {tipoPasto === "spuntino" && (
+          <>
+            <div style={{ fontSize: 12, color: C.violet, fontWeight: 700, marginBottom: 12, fontFamily: "DM Sans, sans-serif", background: "#a78bfa15", padding: "8px 12px", borderRadius: 10 }}>
+              💡 Scegli 1-2 componenti per il tuo spuntino. Dopo pranzo: 1 frutto + 5 noci. Dopo cena: 1 frutto + 3 noci.
+            </div>
+            {SPUNT_LABELS.map((lc, idx) => (
+              <SearchSelect key={idx} label={lc.l} value={spuntComp[idx]}
+                onChange={v => { const n = [...spuntComp]; n[idx] = v; setSpuntComp(n); }}
+                items={lc.cat} color={C.violet} />
+            ))}
+          </>
+        )}
+
+        {/* ─── APERITIVO ─── */}
+        {tipoPasto === "aperitivo" && (
+          <>
+            <div style={{ fontSize: 12, color: C.yellow, fontWeight: 700, marginBottom: 12, fontFamily: "DM Sans, sans-serif", background: "#fbbf2415", padding: "8px 12px", borderRadius: 10 }}>
+              🥂 Aperitivo — scegli i tuoi drink e stuzzichini. Ricorda che l'alcol non è nel tuo piano nutrizionale, monitoralo per non sforare le calorie!
+            </div>
+            {APER_LABELS.map((lc, idx) => (
+              <SearchSelect key={idx} label={lc.l} value={aperItems[idx]}
+                onChange={v => { const n = [...aperItems]; n[idx] = v; setAperItems(n); }}
+                items={lc.cat} color={C.yellow} />
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Riepilogo + aggiungi al diario */}
+      {hasContent && (
+        <div style={{ background: `linear-gradient(135deg, ${C.accentDim}, ${C.card})`, borderRadius: 18, padding: 16, border: `1px solid ${C.accent}44` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 12, fontFamily: "DM Sans, sans-serif" }}>📊 Riepilogo {TIPO_LABELS[tipoPasto]}</div>
+          <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
+            {[{ l: "Kcal", v: pasto.kcal, c: C.text }, { l: "Carbo", v: `${pasto.carbo}g`, c: C.carbo }, { l: "Prot", v: `${pasto.proteine}g`, c: C.proteine }, { l: "Grassi", v: `${pasto.grassi}g`, c: C.grassi }].map(({ l, v, c }) => (
+              <div key={l} style={{ flex: 1, minWidth: 55, background: "#0d182288", borderRadius: 10, padding: "10px 6px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: c, fontFamily: "DM Mono, monospace" }}>{v}</div>
+                <div style={{ fontSize: 9, color: C.muted }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, fontFamily: "DM Sans, sans-serif", marginBottom: 12, lineHeight: 1.5 }}>
+            {pasto.items.map(i => i.nome).join(" + ")}
+          </div>
+
+          {/* Feedback */}
+          <div style={{ padding: 10, background: "#0d1821", borderRadius: 10, marginBottom: 14 }}>
+            {tipoPasto === "aperitivo" && <div style={{ color: C.yellow, fontSize: 12, fontFamily: "DM Sans, sans-serif" }}>🥂 Aperitivo non pianificato — considera di ridurre un pasto principale oggi</div>}
+            {tipoPasto !== "aperitivo" && pasto.proteine < 10 && <div style={{ color: C.orange, fontSize: 12, fontFamily: "DM Sans, sans-serif" }}>⚠️ Proteine basse per questo pasto</div>}
+            {tipoPasto !== "aperitivo" && pasto.kcal > 900 && <div style={{ color: C.red, fontSize: 12, fontFamily: "DM Sans, sans-serif" }}>⚠️ Pasto molto calorico</div>}
+            {tipoPasto !== "aperitivo" && pasto.proteine >= 10 && pasto.kcal <= 900 && <div style={{ color: C.green, fontSize: 12, fontFamily: "DM Sans, sans-serif" }}>✅ In linea con il tuo piano!</div>}
+          </div>
+
+          {/* SELETTORE DATA + PULSANTE AGGIUNGI AL DIARIO */}
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 5, fontWeight: 600, fontFamily: "DM Sans, sans-serif" }}>
+              📅 Aggiungi a quale giorno?
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input type="date" value={dataTarget} onChange={e => setDataTarget(e.target.value)}
+                max={todayStr()}
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#0d1821", color: C.text, border: `1px solid ${C.accent}66`, fontSize: 13, fontFamily: "DM Mono, monospace" }} />
+              <button onClick={() => setDataTarget(todayStr())} style={{ padding: "9px 12px", borderRadius: 10, background: dataTarget === todayStr() ? C.accent : C.card, color: dataTarget === todayStr() ? "#0d1821" : C.muted, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "DM Sans, sans-serif" }}>Oggi</button>
+            </div>
+            {dataTarget !== todayStr() && (
+              <div style={{ fontSize: 10, color: C.orange, marginTop: 5, fontFamily: "DM Sans, sans-serif" }}>
+                ⏪ Stai aggiungendo a un giorno passato: {new Date(dataTarget + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+              </div>
+            )}
+          </div>
+          <button onClick={addToDiary} style={{
+            width: "100%", background: C.accent, color: "#0d1821", border: "none", borderRadius: 12,
+            padding: "13px", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
+            boxShadow: `0 0 16px ${C.accent}66`, letterSpacing: 0.3
+          }}>
+            ➕ Aggiungi al Diario — {dataTarget === todayStr() ? nowLabel() : new Date(dataTarget + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB: FRIGO
+// ═══════════════════════════════════════════════════════════════════════════
+function FrigoTab() {
+  const TUTTO = [
+    ...CARBOIDRATI_PRANZO.map(i => ({ ...i, tipo: "carbo" })),
+    ...PROTEINE_PRANZO.map(i => ({ ...i, tipo: "proteina" })),
+    ...PROTEINE_CENA.map(i => ({ ...i, tipo: "proteina_cena" })),
+    ...VERDURE.map(i => ({ ...i, tipo: "verdura" })),
+  ];
+  const [frigo, setFrigo] = usePersist("ng_frigo_v4", []);
+  const [cerca, setCerca] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("tutti");
+
+  const filtrati = TUTTO.filter(i => {
+    const mc = i.nome.toLowerCase().includes(cerca.toLowerCase());
+    const mt = filtroTipo === "tutti" || i.tipo === filtroTipo || (filtroTipo === "proteina" && i.tipo === "proteina_cena");
+    return mc && mt;
+  });
+
+  const toggle = nome => setFrigo(p => p.includes(nome) ? p.filter(n => n !== nome) : [...p, nome]);
+
+  function suggerisci() {
+    const items = TUTTO.filter(i => frigo.includes(i.nome));
+    const carbs = items.filter(i => i.tipo === "carbo");
+    const prots = items.filter(i => i.tipo === "proteina" || i.tipo === "proteina_cena");
+    const verd = items.filter(i => i.tipo === "verdura");
+    const combos = [];
+    for (const c of carbs) {
+      for (const p of prots) {
+        const v = verd[0];
+        combos.push({ tipo: p.tipo === "proteina" ? "Pranzo ☀️" : "Cena 🌙", items: [c.nome, p.nome, ...(v ? [v.nome] : []), "Olio EVO"], kcal: r2((c.kcal || 0) + (p.kcal || 0) + (v?.kcal || 0) + 90) });
+      }
+    }
+    return combos.slice(0, 5);
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 19, fontWeight: 800, color: C.text, marginBottom: 6, fontFamily: "Playfair Display, serif" }}>Frigo & Dispensa</div>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, fontFamily: "DM Sans, sans-serif" }}>Seleziona cosa hai a casa → ottengo suggerimenti sui pasti</div>
+      <input placeholder="🔍 Cerca ingrediente..." value={cerca} onChange={e => setCerca(e.target.value)}
+        style={{ width: "100%", padding: "10px 14px", borderRadius: 12, background: C.card, color: C.text, border: `1px solid ${C.border}`, marginBottom: 10, fontSize: 13, fontFamily: "DM Sans, sans-serif", boxSizing: "border-box" }} />
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {[["tutti", "Tutti"], ["carbo", "🌾 Carbo"], ["proteina", "🥩 Proteine"], ["verdura", "🥦 Verdure"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFiltroTipo(k)} style={{ padding: "5px 10px", borderRadius: 99, fontSize: 11, cursor: "pointer", background: filtroTipo === k ? C.accent : C.border, color: filtroTipo === k ? "#0d1821" : C.muted, border: "none", fontWeight: 700, fontFamily: "DM Sans, sans-serif" }}>{l}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, maxHeight: 190, overflowY: "auto" }}>
+        {filtrati.map(item => (
+          <button key={item.nome} onClick={() => toggle(item.nome)} style={{ padding: "5px 10px", borderRadius: 99, fontSize: 11, cursor: "pointer", background: frigo.includes(item.nome) ? C.accent : C.card, color: frigo.includes(item.nome) ? "#0d1821" : C.muted, border: `1px solid ${frigo.includes(item.nome) ? C.accent : C.border}`, fontWeight: 700, fontFamily: "DM Sans, sans-serif", boxShadow: frigo.includes(item.nome) ? `0 0 6px ${C.accent}55` : "none" }}>
+            {item.nome.split("(")[0].trim()}
+          </button>
+        ))}
+      </div>
+      {frigo.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 10, fontFamily: "DM Sans, sans-serif" }}>💡 Combinazioni suggerite ({frigo.length} ingredienti)</div>
+          {suggerisci().length === 0 ? (
+            <div style={{ background: C.card, borderRadius: 12, padding: 16, color: C.muted, fontSize: 12, fontFamily: "DM Sans, sans-serif" }}>Aggiungi almeno un carboidrato + una proteina!</div>
+          ) : suggerisci().map((c, i) => (
+            <div key={i} style={{ background: C.card, borderRadius: 12, padding: 14, marginBottom: 8, border: `1px solid ${C.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.accent, fontFamily: "DM Sans, sans-serif" }}>{c.tipo}</span>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "DM Mono, monospace" }}>~{c.kcal} kcal</span>
+              </div>
+              <div style={{ fontSize: 12, color: C.text, fontFamily: "DM Sans, sans-serif", lineHeight: 1.5 }}>{c.items.join(" + ")}</div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB: PESO
+// ═══════════════════════════════════════════════════════════════════════════
+function PesoTab({ pesi, setPesi, diario }) {
+  const [pesoInput, setPesoInput] = useState("");
+  const [dataInput, setDataInput] = useState(todayStr());
+  const [notaInput, setNotaInput] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  function aggiungi() {
+    if (!pesoInput || !dataInput) return;
+    setPesi([...pesi.filter(p => p.data !== dataInput), { data: dataInput, kg: parseFloat(pesoInput), nota: notaInput }].sort((a, b) => a.data.localeCompare(b.data)));
+    setPesoInput(""); setNotaInput("");
+  }
+
+  const ultimo = pesi[pesi.length - 1];
+  const primo = pesi[0];
+  const diffTot = ultimo && primo ? (ultimo.kg - primo.kg).toFixed(1) : 0;
+  const mancano = ultimo ? (ultimo.kg - 65).toFixed(1) : "-";
+
+  const cW = 320, cH = 170, pad = { t: 22, r: 20, b: 32, l: 40 };
+  const iW = cW - pad.l - pad.r, iH = cH - pad.t - pad.b;
+  const kgs = pesi.map(p => p.kg);
+  const minK = Math.min(...kgs, 64) - 0.5, maxK = Math.max(...kgs, 76) + 0.5;
+  const xP = i => pad.l + (i / Math.max(pesi.length - 1, 1)) * iW;
+  const yP = kg => pad.t + iH - ((kg - minK) / (maxK - minK)) * iH;
+  const pathD = pesi.length > 1 ? pesi.map((p, i) => `${i === 0 ? "M" : "L"}${xP(i)},${yP(p.kg)}`).join(" ") : "";
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, color: C.text, fontFamily: "Playfair Display, serif" }}>Tracker Peso</div>
+        <button onClick={() => { setExporting(true); setTimeout(() => { esportaDiarioCSV(diario, pesi); setExporting(false); }, 100); }}
+          style={{ background: exporting ? C.border : "#4ade8033", color: C.green, border: `1px solid ${C.green}55`, borderRadius: 10, padding: "8px 13px", fontWeight: 800, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", display: "flex", alignItems: "center", gap: 5 }}>
+          {exporting ? "⏳" : "📥"} {exporting ? "Preparando..." : "Esporta Excel"}
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {[
+          { l: "Peso attuale", v: `${ultimo?.kg || "-"} kg`, c: C.accent },
+          { l: "Mancano", v: parseFloat(mancano) > 0 ? `-${mancano} kg` : "✅ OBJ!", c: parseFloat(mancano) > 0 ? C.orange : C.green },
+          { l: "Perso totale", v: `${diffTot} kg`, c: parseFloat(diffTot) < 0 ? C.green : C.red },
+        ].map(({ l, v, c }) => (
+          <div key={l} style={{ flex: 1, background: C.card, borderRadius: 14, padding: "12px 8px", textAlign: "center", border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: c, fontFamily: "DM Mono, monospace", lineHeight: 1.2 }}>{v}</div>
+            <div style={{ fontSize: 9, color: C.muted, marginTop: 4, fontFamily: "DM Sans, sans-serif" }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 18, padding: 16, marginBottom: 14, border: `1px solid ${C.border}`, overflowX: "auto" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 10, fontFamily: "DM Sans, sans-serif" }}>📈 Andamento dal {primo?.data?.slice(0, 7) || "-"}</div>
+        <svg width="100%" viewBox={`0 0 ${cW} ${cH}`} style={{ maxWidth: "100%", minWidth: 260 }}>
+          {[65, 68, 71, 74].map(kg => (
+            <g key={kg}>
+              <line x1={pad.l} y1={yP(kg)} x2={cW - pad.r} y2={yP(kg)} stroke={C.border} strokeWidth={0.5} />
+              <text x={pad.l - 4} y={yP(kg) + 3} fill={C.muted} fontSize={8} textAnchor="end" fontFamily="DM Mono, monospace">{kg}</text>
+            </g>
+          ))}
+          <line x1={pad.l} y1={yP(65)} x2={cW - pad.r} y2={yP(65)} stroke={C.green} strokeWidth={1.5} strokeDasharray="5,4" />
+          <text x={cW - pad.r} y={yP(65) - 5} fill={C.green} fontSize={9} textAnchor="end">65kg 🎯</text>
+          {pesi.length > 1 && <path d={`${pathD} L${xP(pesi.length - 1)},${pad.t + iH} L${xP(0)},${pad.t + iH} Z`} fill={`${C.accent}18`} />}
+          {pesi.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth={2.5} style={{ filter: `drop-shadow(0 0 4px ${C.accent})` }} />}
+          {pesi.map((p, i) => (
+            <g key={i}>
+              <circle cx={xP(i)} cy={yP(p.kg)} r={5} fill={C.accent} style={{ filter: `drop-shadow(0 0 4px ${C.accent})` }} />
+              <text x={xP(i)} y={yP(p.kg) - 9} fill={C.text} fontSize={8} textAnchor="middle" fontFamily="DM Mono, monospace">{p.kg}</text>
+              <text x={xP(i)} y={cH - 6} fill={C.muted} fontSize={7} textAnchor="middle" fontFamily="DM Sans, sans-serif">{p.data.slice(5)}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 18, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 12, fontFamily: "DM Sans, sans-serif" }}>⚖️ Registra misurazione</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input type="date" value={dataInput} onChange={e => setDataInput(e.target.value)}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#0d1821", color: C.text, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "DM Sans, sans-serif" }} />
+          <input type="number" step="0.1" placeholder="kg (es. 65.2)" value={pesoInput} onChange={e => setPesoInput(e.target.value)}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#0d1821", color: C.text, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "DM Mono, monospace" }} />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input placeholder="Nota (es. dopo palestra)" value={notaInput} onChange={e => setNotaInput(e.target.value)}
+            style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background: "#0d1821", color: C.text, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: "DM Sans, sans-serif" }} />
+          <button onClick={aggiungi} style={{ background: C.accent, color: "#0d1821", border: "none", borderRadius: 10, padding: "9px 16px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif", boxShadow: `0 0 10px ${C.accent}55` }}>Salva</button>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 8, fontFamily: "DM Sans, sans-serif" }}>📋 Storico</div>
+      {[...pesi].reverse().map((p, i) => (
+        <div key={i} style={{ background: C.card, borderRadius: 11, padding: "9px 14px", marginBottom: 5, display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${C.border}` }}>
+          <div>
+            <div style={{ fontSize: 12, color: C.muted, fontFamily: "DM Sans, sans-serif" }}>{new Date(p.data + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}</div>
+            {p.nota && <div style={{ fontSize: 10, color: C.accent, fontFamily: "DM Sans, sans-serif" }}>{p.nota}</div>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: C.accent, fontFamily: "DM Mono, monospace" }}>{p.kg} kg</span>
+            <button onClick={() => setPesi(pesi.filter(x => x.data !== p.data))}
+              style={{ background: "#f8717122", color: C.red, border: "none", borderRadius: 7, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// APP ROOT
+// ═══════════════════════════════════════════════════════════════════════════
+function NutriGabri() {
+  const [tab, setTab] = useState("diario");
+  const [diario, setDiario] = usePersist("ng_diario_v4", {});
+  const [pesi, setPesi] = usePersist("ng_pesi_v4", [
+    { data: "2025-09-14", kg: 75.1, nota: "Inizio piano Dott.ssa Pietrobono" },
+    { data: "2026-01-15", kg: 70.5, nota: "" },
+    { data: "2026-03-05", kg: 65.6, nota: "Bilancia Fitdays" },
+  ]);
+
+  const log = diario[todayStr()] || [];
+  const totKcal = log.reduce((a, i) => a + i.kcal * (i.qty / i.grammiBase), 0);
+  const totC = log.reduce((a, i) => a + i.carbo * (i.qty / i.grammiBase), 0);
+  const totP = log.reduce((a, i) => a + i.proteine * (i.qty / i.grammiBase), 0);
+  const totG = log.reduce((a, i) => a + i.grassi * (i.qty / i.grammiBase), 0);
+
+  const TABS = [
+    { key: "diario", icon: "📔", label: "Diario" },
+    { key: "pasto", icon: "🍽️", label: "Pasto" },
+    { key: "frigo", icon: "🥦", label: "Frigo" },
+    { key: "peso", icon: "⚖️", label: "Peso" },
+  ];
+
+  return (
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "DM Sans, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
+
+        {/* Header */}
+        <div style={{ background: `linear-gradient(135deg, ${C.card}, #0d2035)`, padding: "20px 16px 14px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, zIndex: 50 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "Playfair Display, serif", color: C.accent, letterSpacing: "-0.5px" }}>NutriGabri</div>
+              <div style={{ fontSize: 10, color: C.muted }}>Piano 1600 kcal · 33 anni · obj 65 kg</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: totKcal > PIANO_KCAL ? C.red : C.text, fontFamily: "DM Mono, monospace" }}>{r2(totKcal)}</div>
+              <div style={{ fontSize: 9, color: C.muted }}>/ {PIANO_KCAL} kcal oggi</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 5, marginTop: 11 }}>
+            {[{ label: "C", cur: totC, max: TARGET.carbo, color: C.carbo }, { label: "P", cur: totP, max: TARGET.proteine, color: C.proteine }, { label: "G", cur: totG, max: TARGET.grassi, color: C.grassi }].map(({ label, cur, max, color }) => (
+              <div key={label} style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: C.muted, marginBottom: 2 }}><span>{label}</span><span>{r2(cur)}/{max}g</span></div>
+                <div style={{ height: 4, background: C.border, borderRadius: 99 }}>
+                  <div style={{ height: "100%", background: cur > max ? C.red : color, borderRadius: 99, width: `${Math.min(cur / max * 100, 100)}%`, boxShadow: `0 0 5px ${color}88` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: "16px 14px" }}>
+          {tab === "diario" && <DiarioTab diario={diario} setDiario={setDiario} />}
+          {tab === "pasto" && <PastoTab diario={diario} setDiario={setDiario} />}
+          {tab === "frigo" && <FrigoTab />}
+          {tab === "peso" && <PesoTab pesi={pesi} setPesi={setPesi} diario={diario} />}
+        </div>
+
+        {/* Bottom Nav */}
+        <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 50 }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, padding: "11px 6px", border: "none", background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <span style={{ fontSize: 19 }}>{t.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "DM Sans, sans-serif", color: tab === t.key ? C.accent : C.muted, borderBottom: tab === t.key ? `2px solid ${C.accent}` : "2px solid transparent", paddingBottom: 1 }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(NutriGabri));
+    } catch(e) {
+      document.getElementById('root').innerHTML = '<div style="color:white;padding:20px;font-size:16px;">Errore: ' + e.message + '</div>';
+      console.error(e);
+    }
+  </script>
+</body>
+</html>
