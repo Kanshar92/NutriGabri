@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="NutriGabri"/>
+  <meta name="theme-color" content="#0d1821"/>
+  <title>NutriGabri</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+    body{background:#0d1821;color:#e2e8f0;font-family:'DM Sans',sans-serif;overscroll-behavior:none}
+    ::-webkit-scrollbar{display:none}
+    input,select,button{font-family:'DM Sans',sans-serif}
+    input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:99px;outline:none;background:#1d3045}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#00e5b4;cursor:pointer}
+    input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1)}
+    select{-webkit-appearance:none;appearance:none}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    .toast{display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#4ade80;color:#0d1821;padding:12px 24px;border-radius:12px;font-weight:800;font-size:14px;z-index:100;box-shadow:0 0 20px #4ade8055;width:90%;max-width:400px;text-align:center}
+    .toast.show{display:block}
+    .group-header{cursor:pointer;user-select:none}
+    .group-items{display:none}
+    .group-items.open{display:block}
+  </style>
+</head>
+<body>
+<div id="app" style="min-height:100vh;max-width:480px;margin:0 auto;padding-bottom:80px"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// DATABASE
+// ═══════════════════════════════════════
+const COLAZIONI={proteiche:[{nome:"Yogurt greco 0% (150g)",grammi:150,kcal:90,carbo:6,proteine:15,grassi:0.5},{nome:"Yogurt greco 2% (150g)",grammi:150,kcal:110,carbo:6,proteine:14,grassi:3},{nome:"Skyr naturale (150g)",grammi:150,kcal:90,carbo:6,proteine:16,grassi:0.3},{nome:"Fiocchi di latte (150g)",grammi:150,kcal:120,carbo:4,proteine:18,grassi:1},{nome:"Ricotta light (100g)",grammi:100,kcal:105,carbo:4,proteine:11,grassi:5},{nome:"Uova strapazzate (2)",grammi:120,kcal:148,carbo:0,proteine:14,grassi:10},{nome:"Uova sode (2)",grammi:120,kcal:148,carbo:0,proteine:14,grassi:10},{nome:"Albumi (3)",grammi:100,kcal:52,carbo:1,proteine:11,grassi:0.2},{nome:"Whey proteica (30g)",grammi:30,kcal:120,carbo:3,proteine:22,grassi:2}],carboidrati:[{nome:"Pane integrale (30g) ⚠️ elimina frutto+noci pranzo",grammi:30,kcal:75,carbo:14,proteine:3,grassi:1},{nome:"Pane integrale (50g)",grammi:50,kcal:125,carbo:23,proteine:5,grassi:1.5},{nome:"Fiocchi d'avena (40g)",grammi:40,kcal:150,carbo:26,proteine:5,grassi:3},{nome:"Fiocchi d'avena (60g)",grammi:60,kcal:225,carbo:39,proteine:7,grassi:4},{nome:"Gallette di riso (3 pz)",grammi:30,kcal:110,carbo:24,proteine:2,grassi:1},{nome:"Fette biscottate integrali (3)",grammi:30,kcal:110,carbo:22,proteine:3,grassi:1.5},{nome:"Muesli senza zucchero (40g)",grammi:40,kcal:145,carbo:26,proteine:4,grassi:3},{nome:"Cornetto integrale vuoto ⚠️ elimina frutto+noci",grammi:60,kcal:190,carbo:32,proteine:5,grassi:5}],grassi_dolci:[{nome:"Burro (10g)",grammi:10,kcal:74,carbo:0,proteine:0.1,grassi:8},{nome:"Marmellata (1 cucchiaio 20g)",grammi:20,kcal:50,carbo:13,proteine:0.1,grassi:0},{nome:"Burro di mandorle (15g)",grammi:15,kcal:95,carbo:3,proteine:3,grassi:8},{nome:"Burro di arachidi (15g)",grammi:15,kcal:90,carbo:3,proteine:4,grassi:7},{nome:"Miele (1 cucchiaino 10g)",grammi:10,kcal:30,carbo:8,proteine:0,grassi:0},{nome:"Semi di chia (10g)",grammi:10,kcal:49,carbo:4,proteine:2,grassi:3}],bevande:[{nome:"Caffè espresso",grammi:30,kcal:2,carbo:0.3,proteine:0.1,grassi:0},{nome:"Cappuccino",grammi:150,kcal:60,carbo:6,proteine:4,grassi:2},{nome:"Latte macchiato (200ml)",grammi:200,kcal:75,carbo:9,proteine:5,grassi:2},{nome:"Tè verde",grammi:250,kcal:2,carbo:0.3,proteine:0.1,grassi:0},{nome:"Tè nero",grammi:250,kcal:3,carbo:0.5,proteine:0.1,grassi:0},{nome:"Latte p.s. (200ml)",grammi:200,kcal:70,carbo:10,proteine:7,grassi:1.5},{nome:"Latte intero (200ml)",grammi:200,kcal:130,carbo:10,proteine:7,grassi:7},{nome:"Latte di avena (200ml)",grammi:200,kcal:90,carbo:16,proteine:3,grassi:2},{nome:"Succo d'arancia (150ml)",grammi:150,kcal:66,carbo:15,proteine:1,grassi:0.2}],frutta:[{nome:"Mela (150g)",grammi:150,kcal:78,carbo:20,proteine:0.4,grassi:0.2},{nome:"Banana piccola (100g)",grammi:100,kcal:89,carbo:23,proteine:1,grassi:0.3},{nome:"Frutti di bosco (150g)",grammi:150,kcal:60,carbo:12,proteine:1,grassi:0.5},{nome:"Fragole (200g)",grammi:200,kcal:64,carbo:14,proteine:1.3,grassi:0.6},{nome:"Ananas (150g)",grammi:150,kcal:78,carbo:19,proteine:0.9,grassi:0.1}]};
+
+const FRUTTA_DOPO=[{nome:"1 Mela (150g)",grammi:150,kcal:78,carbo:20,proteine:0.4,grassi:0.2},{nome:"1 Arancio (180g)",grammi:180,kcal:72,carbo:17,proteine:1.4,grassi:0.2},{nome:"1 Banana media (150g)",grammi:150,kcal:134,carbo:34,proteine:1.5,grassi:0.5},{nome:"1 Pesca grande (200g)",grammi:200,kcal:78,carbo:19,proteine:1.8,grassi:0.2},{nome:"Fragole (300g)",grammi:300,kcal:96,carbo:21,proteine:2,grassi:0.9},{nome:"Ciliegie (250g)",grammi:250,kcal:130,carbo:31,proteine:2,grassi:0.5},{nome:"2 Albicocche",grammi:100,kcal:48,carbo:11,proteine:1,grassi:0.2},{nome:"Cocomero (250g)",grammi:250,kcal:75,carbo:18,proteine:1.5,grassi:0.2},{nome:"Melone (250g)",grammi:250,kcal:88,carbo:22,proteine:2,grassi:0.3},{nome:"2 Susine grandi",grammi:160,kcal:72,carbo:17,proteine:0.8,grassi:0.4},{nome:"Mirtilli (200g)",grammi:200,kcal:114,carbo:24,proteine:1.5,grassi:0.7},{nome:"Lamponi (200g)",grammi:200,kcal:104,carbo:20,proteine:2.4,grassi:1.4},{nome:"Ananas (200g)",grammi:200,kcal:104,carbo:25,proteine:1.2,grassi:0.2}];
+
+const FRUTTA_SECCA_DOPO=[{nome:"5 Noci (pranzo) 25g",grammi:25,kcal:163,carbo:3,proteine:4,grassi:16},{nome:"3 Noci (cena) 15g",grammi:15,kcal:98,carbo:2,proteine:2.4,grassi:9.6},{nome:"15 Mandorle (pranzo) 20g",grammi:20,kcal:118,carbo:4,proteine:4,grassi:10},{nome:"10 Mandorle (cena) 13g",grammi:13,kcal:77,carbo:2.5,proteine:2.6,grassi:6.5},{nome:"15 Nocciole (pranzo) 20g",grammi:20,kcal:125,carbo:4,proteine:3,grassi:11},{nome:"10 Nocciole (cena) 13g",grammi:13,kcal:81,carbo:2.5,proteine:2,grassi:7},{nome:"Burro noccioline 1 cucchiaino (5g)",grammi:5,kcal:30,carbo:1,proteine:1.4,grassi:2.6},{nome:"Burro noccioline 1 cucchiaio (15g)",grammi:15,kcal:90,carbo:3,proteine:4,grassi:7.5},{nome:"Burro mandorle 1 cucchiaino (5g)",grammi:5,kcal:32,carbo:1,proteine:1,grassi:2.8},{nome:"Burro mandorle 1 cucchiaio (15g)",grammi:15,kcal:95,carbo:3,proteine:3,grassi:8.5},{nome:"Yogurt greco 2% alternativa cena (125g)",grammi:125,kcal:92,carbo:5,proteine:12,grassi:2.5}];
+
+const SPUNTINI_ALL=[{nome:"5 Noci",grammi:25,kcal:163,carbo:3,proteine:4,grassi:16},{nome:"15 Mandorle",grammi:20,kcal:118,carbo:4,proteine:4,grassi:10},{nome:"15 Nocciole",grammi:20,kcal:125,carbo:4,proteine:3,grassi:11},{nome:"Yogurt greco 0% (125g)",grammi:125,kcal:75,carbo:5,proteine:12,grassi:0.4},{nome:"Fiocchi di latte (100g)",grammi:100,kcal:80,carbo:3,proteine:12,grassi:2},{nome:"Uovo sodo (1)",grammi:60,kcal:74,carbo:0,proteine:7,grassi:5},{nome:"Bresaola (30g)",grammi:30,kcal:47,carbo:0,proteine:9.5,grassi:1},{nome:"Tonno al naturale (50g)",grammi:50,kcal:50,carbo:0,proteine:11.5,grassi:0.5},{nome:"1 Mela",grammi:150,kcal:78,carbo:20,proteine:0.4,grassi:0.2},{nome:"1 Arancio",grammi:180,kcal:72,carbo:17,proteine:1.4,grassi:0.2},{nome:"Fragole (300g)",grammi:300,kcal:96,carbo:21,proteine:2,grassi:0.9},{nome:"Gallette di riso (2 pz)",grammi:20,kcal:74,carbo:16,proteine:1.5,grassi:0.7},{nome:"Hummus (50g) + verdure",grammi:50,kcal:118,carbo:9,proteine:5,grassi:7},{nome:"Edamame (100g)",grammi:100,kcal:128,carbo:8,proteine:11,grassi:6}];
+
+const BEVANDE_PASTO=[{nome:"Acqua naturale (500ml)",grammi:500,kcal:0,carbo:0,proteine:0,grassi:0},{nome:"Acqua frizzante (500ml)",grammi:500,kcal:0,carbo:0,proteine:0,grassi:0},{nome:"Tè freddo non zuccherato (250ml)",grammi:250,kcal:5,carbo:1,proteine:0.1,grassi:0},{nome:"Vino bianco 1 bicchiere (150ml)",grammi:150,kcal:108,carbo:2,proteine:0.1,grassi:0},{nome:"Vino rosso 1 bicchiere (150ml)",grammi:150,kcal:120,carbo:2.5,proteine:0.1,grassi:0},{nome:"Prosecco 1 calice (125ml)",grammi:125,kcal:90,carbo:2.5,proteine:0.1,grassi:0},{nome:"Birra chiara (330ml)",grammi:330,kcal:148,carbo:12,proteine:1.6,grassi:0},{nome:"Birra analcolica (330ml)",grammi:330,kcal:66,carbo:13,proteine:0.5,grassi:0}];
+
+const APERITIVO_DRINK=[{nome:"Aperol Spritz (200ml)",grammi:200,kcal:168,carbo:18,proteine:0.2,grassi:0},{nome:"Hugo (200ml)",grammi:200,kcal:138,carbo:16,proteine:0.2,grassi:0},{nome:"Negroni (80ml)",grammi:80,kcal:196,carbo:14,proteine:0.1,grassi:0},{nome:"Gin Tonic (200ml)",grammi:200,kcal:155,carbo:12,proteine:0.1,grassi:0},{nome:"Mojito (200ml)",grammi:200,kcal:168,carbo:22,proteine:0.5,grassi:0},{nome:"Prosecco 1 flûte (125ml)",grammi:125,kcal:90,carbo:2.5,proteine:0.1,grassi:0},{nome:"Vino bianco 1 calice (150ml)",grammi:150,kcal:108,carbo:2,proteine:0.1,grassi:0},{nome:"Birra chiara (330ml)",grammi:330,kcal:148,carbo:12,proteine:1.6,grassi:0},{nome:"Americano (150ml)",grammi:150,kcal:118,carbo:10,proteine:0.1,grassi:0},{nome:"Bellini (120ml)",grammi:120,kcal:102,carbo:12,proteine:0.3,grassi:0}];
+const APERITIVO_STUZZICHINI=[{nome:"Olive (10 pz 30g)",grammi:30,kcal:45,carbo:1,proteine:0.4,grassi:4},{nome:"Chips (30g)",grammi:30,kcal:156,carbo:18,proteine:2,grassi:9},{nome:"Pistacchi (30g)",grammi:30,kcal:174,carbo:8,proteine:6,grassi:14},{nome:"Grissini (20g)",grammi:20,kcal:80,carbo:14,proteine:2,grassi:2},{nome:"Crackers (30g)",grammi:30,kcal:130,carbo:20,proteine:3,grassi:5},{nome:"Bruschetta (60g)",grammi:60,kcal:120,carbo:18,proteine:3,grassi:4}];
+
+const CARBS_PRANZO=[{nome:"Pasta integrale (80g)",grammi:80,kcal:282,carbo:58,proteine:10,grassi:1.2},{nome:"Pasta di semola (80g)",grammi:80,kcal:288,carbo:60,proteine:10,grassi:1},{nome:"Riso integrale (80g)",grammi:80,kcal:272,carbo:58,proteine:6,grassi:1.5},{nome:"Riso basmati (80g)",grammi:80,kcal:276,carbo:61,proteine:6,grassi:0.5},{nome:"Farro (80g)",grammi:80,kcal:284,carbo:58,proteine:10,grassi:1.5},{nome:"Cous Cous integrale (80g)",grammi:80,kcal:270,carbo:55,proteine:10,grassi:1},{nome:"Grano Saraceno (80g)",grammi:80,kcal:276,carbo:54,proteine:10,grassi:2},{nome:"Quinoa (70g)",grammi:70,kcal:242,carbo:45,proteine:9,grassi:3},{nome:"Amaranto (70g)",grammi:70,kcal:245,carbo:46,proteine:9,grassi:3},{nome:"Pane integrale (90g)",grammi:90,kcal:228,carbo:44,proteine:8,grassi:2},{nome:"Lenticchie + Pane 40g",grammi:240,kcal:248,carbo:42,proteine:17,grassi:1},{nome:"Ceci + Pane 40g",grammi:240,kcal:260,carbo:40,proteine:16,grassi:4},{nome:"Fagioli Cannellini + Pane",grammi:240,kcal:250,carbo:42,proteine:16,grassi:1},{nome:"Patate + Pane 40g",grammi:240,kcal:222,carbo:48,proteine:6,grassi:0.5},{nome:"Pasta + Ceci (80g+100g)",grammi:180,kcal:340,carbo:60,proteine:16,grassi:2},{nome:"Pasta + Lenticchie (80g+100g)",grammi:180,kcal:335,carbo:58,proteine:18,grassi:2}];
+
+const PROTS_PRANZO=[{nome:"Tonno al naturale (100g)",grammi:100,kcal:101,proteine:23,grassi:1,carbo:0,tipo:"🐟 Pesce"},{nome:"Salmone affumicato (50g)",grammi:50,kcal:110,proteine:13,grassi:6,carbo:0,tipo:"🐟 Pesce"},{nome:"Gamberetti sgusciati (140g)",grammi:140,kcal:114,proteine:24,grassi:2,carbo:0,tipo:"🐟 Pesce"},{nome:"Nasello/Merluzzo (140g)",grammi:140,kcal:126,proteine:26,grassi:2,carbo:0,tipo:"🐟 Pesce"},{nome:"Totani/Seppie (140g)",grammi:140,kcal:118,proteine:24,grassi:2,carbo:1,tipo:"🐟 Pesce"},{nome:"Petto di Pollo (120g)",grammi:120,kcal:143,proteine:28,grassi:3,carbo:0,tipo:"🍗 Carne"},{nome:"Petto di Tacchino (120g)",grammi:120,kcal:138,proteine:27,grassi:3,carbo:0,tipo:"🍗 Carne"},{nome:"Bresaola (60g)",grammi:60,kcal:94,proteine:19,grassi:2,carbo:0,tipo:"🥩 Affettati"},{nome:"Prosciutto Crudo (50g)",grammi:50,kcal:105,proteine:14,grassi:5,carbo:0,tipo:"🥩 Affettati"},{nome:"Affettato Pollo/Tacchino (100g)",grammi:100,kcal:110,proteine:22,grassi:2,carbo:1,tipo:"🥩 Affettati"},{nome:"Uova (2)",grammi:120,kcal:148,proteine:14,grassi:10,carbo:0,tipo:"🥚 Uova"},{nome:"Ricotta light (100g) ⚠️max2/sett",grammi:100,kcal:105,proteine:11,grassi:5,carbo:4,tipo:"🧀 Formaggi"},{nome:"Formaggio stagionato (30g) ⚠️max2/sett",grammi:30,kcal:124,proteine:8,grassi:10,carbo:0,tipo:"🧀 Formaggi"},{nome:"Mezza Mozzarella Light ⚠️max2/sett",grammi:62,kcal:89,proteine:10,grassi:5,carbo:1,tipo:"🧀 Formaggi"}];
+
+const CARBS_CENA=[{nome:"Pane integrale (60g)",grammi:60,kcal:150,carbo:29,proteine:5,grassi:1},{nome:"Patate lesse (180g)",grammi:180,kcal:142,carbo:30,proteine:4,grassi:0.3},{nome:"Patate dolci (180g)",grammi:180,kcal:155,carbo:36,proteine:3,grassi:0.2},{nome:"Pisellini (250g)",grammi:250,kcal:198,carbo:30,proteine:16,grassi:1},{nome:"Lenticchie cotte (180g)",grammi:180,kcal:178,carbo:28,proteine:14,grassi:1},{nome:"Ceci cotti (180g)",grammi:180,kcal:196,carbo:28,proteine:12,grassi:4},{nome:"Fagioli cannellini (180g)",grammi:180,kcal:172,carbo:28,proteine:12,grassi:1}];
+
+const PROTS_CENA=[{nome:"Pollo Petto (200g)",grammi:200,kcal:234,proteine:46,grassi:5,carbo:0,tipo:"🍗 Carne bianca"},{nome:"Pollo Sovracoscia (150g)",grammi:150,kcal:188,proteine:28,grassi:8,carbo:0,tipo:"🍗 Carne bianca"},{nome:"Tacchino Petto (200g)",grammi:200,kcal:228,proteine:44,grassi:5,carbo:0,tipo:"🍗 Carne bianca"},{nome:"Bistecca Vitella (150g) ⚠️max1/sett",grammi:150,kcal:186,proteine:30,grassi:7,carbo:0,tipo:"🥩 Carne rossa"},{nome:"Tagliata (150g) ⚠️max1/sett",grammi:150,kcal:204,proteine:30,grassi:9,carbo:0,tipo:"🥩 Carne rossa"},{nome:"Bistecca Maiale (150g) ⚠️max1/sett",grammi:150,kcal:204,proteine:28,grassi:10,carbo:0,tipo:"🥩 Carne rossa"},{nome:"Tonno Fresco (150g)",grammi:150,kcal:186,proteine:34,grassi:5,carbo:0,tipo:"🐟 Pesce"},{nome:"Orata (180g)",grammi:180,kcal:196,proteine:34,grassi:7,carbo:0,tipo:"🐟 Pesce"},{nome:"Salmone fresco (150g)",grammi:150,kcal:280,proteine:30,grassi:18,carbo:0,tipo:"🐟 Pesce"},{nome:"Nasello/Merluzzo (250g)",grammi:250,kcal:220,proteine:46,grassi:4,carbo:0,tipo:"🐟 Pesce"},{nome:"Gamberi (200g)",grammi:200,kcal:170,proteine:36,grassi:2,carbo:0,tipo:"🐟 Pesce"},{nome:"Alici fresche (200g)",grammi:200,kcal:216,proteine:36,grassi:8,carbo:0,tipo:"🐟 Pesce"},{nome:"Uova (3)",grammi:180,kcal:222,proteine:21,grassi:15,carbo:0,tipo:"🥚 Uova"},{nome:"Uova 2 + Prosciutto (30g)",grammi:150,kcal:205,proteine:21,grassi:14,carbo:0,tipo:"🥚 Uova"},{nome:"Mozzarella Light (125g) ⚠️max2/sett",grammi:125,kcal:178,proteine:20,grassi:10,carbo:2,tipo:"🧀 Formaggi"},{nome:"Ricotta (120g) ⚠️max2/sett",grammi:120,kcal:168,proteine:12,grassi:12,carbo:4,tipo:"🧀 Formaggi"},{nome:"Parmigiano/Grana (50g) ⚠️max2/sett",grammi:50,kcal:216,proteine:15,grassi:17,carbo:0,tipo:"🧀 Formaggi"}];
+
+const VERDURE=[{nome:"Insalata mista (250g)",grammi:250,kcal:30,carbo:4,proteine:2,grassi:0.3},{nome:"Spinaci (250g)",grammi:250,kcal:56,carbo:5,proteine:6,grassi:1},{nome:"Pomodori ramati (250g)",grammi:250,kcal:48,carbo:8,proteine:2,grassi:0.5},{nome:"Pomodorini (250g)",grammi:250,kcal:50,carbo:9,proteine:2,grassi:0.5},{nome:"Zucchine (250g)",grammi:250,kcal:46,carbo:7,proteine:3,grassi:0.5},{nome:"Broccoli (250g)",grammi:250,kcal:84,carbo:12,proteine:7,grassi:1},{nome:"Cavolfiore (250g)",grammi:250,kcal:62,carbo:10,proteine:5,grassi:0.5},{nome:"Melanzane (250g)",grammi:250,kcal:50,carbo:8,proteine:3,grassi:0.5},{nome:"Peperoni misti (250g)",grammi:250,kcal:72,carbo:14,proteine:3,grassi:0.4},{nome:"Funghi champignon (250g)",grammi:250,kcal:50,carbo:5,proteine:7,grassi:0.5},{nome:"Finocchi (250g)",grammi:250,kcal:50,carbo:9,proteine:3,grassi:0.5},{nome:"Cetrioli (250g)",grammi:250,kcal:33,carbo:5,proteine:2,grassi:0.3},{nome:"Asparagi (250g)",grammi:250,kcal:55,carbo:8,proteine:6,grassi:0.5},{nome:"Fagiolini (250g)",grammi:250,kcal:70,carbo:12,proteine:5,grassi:0.5},{nome:"Rucola (100g)",grammi:100,kcal:25,carbo:4,proteine:3,grassi:0.5},{nome:"Radicchio (250g)",grammi:250,kcal:40,carbo:7,proteine:3,grassi:0.3},{nome:"Carote (200g)",grammi:200,kcal:86,carbo:18,proteine:2,grassi:0.4},{nome:"Carciofi (200g)",grammi:200,kcal:80,carbo:14,proteine:5,grassi:0.3}];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const C={bg:"#0d1821",card:"#142030",card2:"#1a2840",border:"#1d3045",accent:"#00e5b4",accentDim:"#00e5b415",carbo:"#f59e0b",proteine:"#60a5fa",grassi:"#f472b6",green:"#4ade80",red:"#f87171",orange:"#fb923c",violet:"#a78bfa",yellow:"#fbbf24",text:"#e2e8f0",muted:"#64748b"};
+const TARGET={kcal:1600,carbo:150,proteine:80,grassi:65};
+
+function load(k,def){try{const s=localStorage.getItem(k);return s?JSON.parse(s):def}catch{return def}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+let STATE={
+  tab:"diario",
+  diario:load("ng_diario_v4",{}),
+  pesi:load("ng_pesi_v4",[{data:"2025-09-14",kg:75.1,nota:"Inizio piano"},{data:"2026-01-15",kg:70.5,nota:""},{data:"2026-03-05",kg:65.6,nota:"Bilancia Fitdays"}]),
+  frigo:load("ng_frigo_v4",[]),
+  pasto:{tipo:"pranzo",carbo:null,prot1:null,prot2:null,split:70,verd:null,olio:true,bevanda:null,frutta:null,fruttaSecca:null,colComp:[null,null,null,null],spuntComp:[null,null],aperDrink1:null,aperDrink2:null,aperStuz:null,dataTarget:todayStr()},
+  frigoSearch:"",frigoFiltro:"tutti",
+  pesoInput:"",pesoData:todayStr(),pesaNota:"",
+  diarioDate:todayStr()
+};
+
+function todayStr(){return new Date().toISOString().split("T")[0]}
+function r2(n){return Math.round(n*10)/10}
+function nowLabel(){const d=new Date();return d.toLocaleDateString("it-IT",{day:"numeric",month:"short"})+" "+d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0")}
+function fmtData(s){if(!s)return "";try{return new Date(s+"T12:00:00").toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})}catch{return s}}
+
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
+function setState(patch){Object.assign(STATE,patch);render()}
+
+// ═══════════════════════════════════════
+// MACRO CALC
+// ═══════════════════════════════════════
+function calcDayMacros(dateStr){
+  const log=STATE.diario[dateStr]||[];
+  return log.reduce((a,i)=>{const gb=i.grammiBase||i.grammi||1;const r=(i.qty||0)/gb;return{kcal:a.kcal+(i.kcal||0)*r,carbo:a.carbo+(i.carbo||0)*r,proteine:a.proteine+(i.proteine||0)*r,grassi:a.grassi+(i.grassi||0)*r}},{kcal:0,carbo:0,proteine:0,grassi:0});
+}
+
+// ═══════════════════════════════════════
+// PASTO CALC
+// ═══════════════════════════════════════
+function calcPasto(){
+  const p=STATE.pasto;
+  const items=[];
+  const olio10={nome:"Olio EVO 1 cucchiaio",grammi:10,kcal:90,carbo:0,proteine:0,grassi:10,grammiBase:10,qty:10};
+  const olio20={nome:"Olio EVO 2 cucchiai",grammi:20,kcal:180,carbo:0,proteine:0,grassi:20,grammiBase:20,qty:20};
+
+  if(p.tipo==="colazione"){
+    [0,1,2,3].forEach(i=>{if(p.colComp[i]){const f=findItem(p.colComp[i]);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}});
+    if(p.colComp[4]){const f=findItem(p.colComp[4]);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+  } else if(p.tipo==="pranzo"||p.tipo==="cena"){
+    const carbs=p.tipo==="pranzo"?CARBS_PRANZO:CARBS_CENA;
+    const prots=p.tipo==="pranzo"?PROTS_PRANZO:PROTS_CENA;
+    if(p.carbo){const f=carbs.find(x=>x.nome===p.carbo);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.prot1){const f=prots.find(x=>x.nome===p.prot1);if(f){const ratio=p.prot2?p.split/100:1;items.push({...f,grammiBase:f.grammi,qty:Math.round(f.grammi*ratio)})}}
+    if(p.prot2){const f=prots.find(x=>x.nome===p.prot2);if(f){const ratio=(100-p.split)/100;items.push({...f,grammiBase:f.grammi,qty:Math.round(f.grammi*ratio)})}}
+    if(p.verd){const f=VERDURE.find(x=>x.nome===p.verd);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.olio)items.push(p.tipo==="pranzo"?{...olio10}:{...olio20});
+    if(p.bevanda){const f=BEVANDE_PASTO.find(x=>x.nome===p.bevanda);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.frutta){const f=FRUTTA_DOPO.find(x=>x.nome===p.frutta);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.fruttaSecca){const f=FRUTTA_SECCA_DOPO.find(x=>x.nome===p.fruttaSecca);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+  } else if(p.tipo==="spuntino"){
+    [0,1].forEach(i=>{if(p.spuntComp[i]){const f=SPUNTINI_ALL.find(x=>x.nome===p.spuntComp[i]);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}});
+  } else if(p.tipo==="aperitivo"){
+    if(p.aperDrink1){const f=APERITIVO_DRINK.find(x=>x.nome===p.aperDrink1);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.aperDrink2){const f=APERITIVO_DRINK.find(x=>x.nome===p.aperDrink2);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+    if(p.aperStuz){const f=APERITIVO_STUZZICHINI.find(x=>x.nome===p.aperStuz);if(f)items.push({...f,grammiBase:f.grammi,qty:f.grammi})}
+  }
+  return items;
+}
+
+function findItem(nome){
+  const all=[...COLAZIONI.proteiche,...COLAZIONI.carboidrati,...COLAZIONI.grassi_dolci,...COLAZIONI.bevande,...COLAZIONI.frutta];
+  return all.find(x=>x.nome===nome);
+}
+
+function sumMacros(items){
+  return items.reduce((a,i)=>{const gb=i.grammiBase||i.grammi||1;const r=(i.qty||i.grammi||0)/gb;return{kcal:a.kcal+(i.kcal||0)*r,carbo:a.carbo+(i.carbo||0)*r,proteine:a.proteine+(i.proteine||0)*r,grassi:a.grassi+(i.grassi||0)*r}},{kcal:0,carbo:0,proteine:0,grassi:0});
+}
+
+function addToDiary(){
+  const items=calcPasto();
+  if(!items.length){showToast("⚠️ Seleziona almeno un alimento!");return}
+  const labels={colazione:"🌅 Colazione",pranzo:"☀️ Pranzo",cena:"🌙 Cena",spuntino:"🍎 Spuntino",aperitivo:"🥂 Aperitivo"};
+  const key=STATE.pasto.dataTarget;
+  const log=STATE.diario[key]||[];
+  const oraLabel=nowLabel();
+  const newItems=items.map(i=>({id:Date.now()+Math.random(),nome:i.nome,qty:i.qty,grammiBase:i.grammiBase||i.grammi,kcal:i.kcal,carbo:i.carbo||0,proteine:i.proteine||0,grassi:i.grassi||0,cat:labels[STATE.pasto.tipo],ora:oraLabel}));
+  const newDiario={...STATE.diario,[key]:[...log,...newItems]};
+  save("ng_diario_v4",newDiario);
+  // Reset pasto
+  const newP={tipo:STATE.pasto.tipo,carbo:null,prot1:null,prot2:null,split:70,verd:null,olio:true,bevanda:null,frutta:null,fruttaSecca:null,colComp:[null,null,null,null],spuntComp:[null,null],aperDrink1:null,aperDrink2:null,aperStuz:null,dataTarget:STATE.pasto.dataTarget};
+  STATE.diario=newDiario;STATE.pasto=newP;
+  showToast("✅ Pasto aggiunto al diario!");
+  render();
+}
+
+// ═══════════════════════════════════════
+// CSV EXPORT
+// ═══════════════════════════════════════
+function esportaCSV(){
+  const rows=[["Data","Giorno","Tipo Pasto","Alimento","Grammi","Kcal","Carbo (g)","Proteine (g)","Grassi (g)","Ora"]];
+  for(const data of Object.keys(STATE.diario).sort()){
+    const log=STATE.diario[data]||[];if(!log.length)continue;
+    const g=new Date(data+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long"});
+    for(const i of log){const r=i.qty/i.grammiBase;rows.push([data,g,i.cat||"-",i.nome,i.qty,r2(i.kcal*r),r2(i.carbo*r),r2(i.proteine*r),r2(i.grassi*r),i.ora||"-"])}
+    const tot=log.reduce((a,i)=>{const r=i.qty/i.grammiBase;return{kcal:a.kcal+i.kcal*r,carbo:a.carbo+i.carbo*r,prot:a.prot+i.proteine*r,gras:a.gras+i.grassi*r}},{kcal:0,carbo:0,prot:0,gras:0});
+    rows.push([data,g,">>> TOTALE","","",r2(tot.kcal),r2(tot.carbo),r2(tot.prot),r2(tot.gras),""]);rows.push([]);
+  }
+  rows.push([]);rows.push(["=== STORICO PESO ==="]);rows.push(["Data","Peso (kg)","Nota"]);
+  for(const p of STATE.pesi)rows.push([p.data,p.kg,p.nota||""]);
+  const csv="\uFEFF"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=`NutriGabri_${todayStr()}.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════
+function el(tag,attrs,inner){
+  const attrStr=Object.entries(attrs||{}).map(([k,v])=>{if(k==="style"&&typeof v==="object")return `style="${Object.entries(v).map(([sk,sv])=>sk.replace(/([A-Z])/g,"-$1").toLowerCase()+":"+sv).join(";")}"`; if(k.startsWith("on"))return "";return `${k}="${v}"`}).join(" ");
+  return `<${tag} ${attrStr}>${inner||""}</${tag}>`;
+}
+
+function macroBar(label,cur,target,color){
+  const pct=Math.min((cur/target)*100,100);
+  const tol=10;const inRange=cur>=(target-tol)&&cur<=(target+tol);const over=cur>target+tol;
+  const bc=inRange?C.green:over?C.red:color;
+  return `<div style="margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+      <span style="font-size:11px;color:${C.muted}">${label}</span>
+      <span style="font-size:11px;font-weight:700;color:${bc};font-family:DM Mono,monospace">${r2(cur)}g / ${target}g${inRange?" ✓":""}</span>
+    </div>
+    <div style="height:5px;background:${C.border};border-radius:99px;position:relative">
+      <div style="height:100%;border-radius:99px;background:${bc};width:${pct}%;box-shadow:0 0 6px ${bc}88;transition:width 0.3s"></div>
+    </div>
+  </div>`;
+}
+
+function selectDropdown(id,items,value,label,color,groupBy){
+  let opts=`<option value="">— ${label} —</option>`;
+  if(groupBy){
+    const groups={};items.forEach(i=>{const g=i[groupBy]||"Altro";if(!groups[g])groups[g]=[];groups[g].push(i)});
+    for(const [g,arr]of Object.entries(groups)){opts+=`<optgroup label="${g}">`+arr.map(i=>`<option value="${i.nome}"${i.nome===value?"selected":""}>${i.nome}</option>`).join("")+"</optgroup>"}
+  } else {
+    opts+=items.map(i=>`<option value="${i.nome}"${i.nome===value?"selected":""}>${i.nome}</option>`).join("");
+  }
+  return `<div style="margin-bottom:10px">
+    <label style="display:block;font-size:11px;color:${color};font-weight:700;margin-bottom:5px;font-family:DM Sans,sans-serif">${label}</label>
+    <select id="${id}" style="width:100%;padding:10px 12px;border-radius:10px;background:#0d1821;color:${C.text};border:1px solid ${value?color:C.border};font-size:13px;font-family:DM Sans,sans-serif;cursor:pointer" onchange="handleSelect('${id}',this.value)">${opts}</select>
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// RENDER DIARIO TAB
+// ═══════════════════════════════════════
+function renderDiario(){
+  const dateStr=STATE.diarioDate;
+  const log=STATE.diario[dateStr]||[];
+  const macro=calcDayMacros(dateStr);
+  const isToday=dateStr===todayStr();
+
+  // Date nav
+  const dates=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dates.push(d.toISOString().split("T")[0])}
+
+  let dateNav=`<div style="display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">`;
+  for(const d of dates){
+    const active=d===dateStr;const isT=d===todayStr();
+    const lbl=isT?"Oggi":new Date(d+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+    dateNav+=`<button onclick="setState({diarioDate:'${d}'})" style="flex-shrink:0;padding:6px 12px;border-radius:99px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:DM Sans,sans-serif;background:${active?C.accent:C.card};color:${active?"#0d1821":C.muted};box-shadow:${active?`0 0 10px ${C.accent}55`:"none"}">${lbl}</button>`;
+  }
+  dateNav+=`</div>`;
+
+  // Macro summary
+  let macroHtml=`<div style="background:${C.card};border-radius:16px;padding:14px;margin-bottom:14px;border:1px solid ${C.border}">`;
+  macroHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="font-size:13px;font-weight:700;color:${C.accent};font-family:DM Sans,sans-serif">📊 ${isToday?"Oggi":"Riepilogo"}</span>
+    <span style="font-size:18px;font-weight:800;color:${macro.kcal>TARGET.kcal?C.red:C.text};font-family:DM Mono,monospace">${r2(macro.kcal)} <span style="font-size:11px;color:${C.muted}">/ ${TARGET.kcal} kcal</span></span>
+  </div>`;
+  macroHtml+=macroBar("🌾 Carboidrati",macro.carbo,TARGET.carbo,C.carbo);
+  macroHtml+=macroBar("🥩 Proteine",macro.proteine,TARGET.proteine,C.proteine);
+  macroHtml+=macroBar("🫒 Grassi",macro.grassi,TARGET.grassi,C.grassi);
+  macroHtml+=`</div>`;
+
+  // Group log by meal type
+  const groups={};const ORDER=["🌅 Colazione","🍎 Spuntino","☀️ Pranzo","🌙 Cena","🥂 Aperitivo","—"];
+  for(const item of log){const cat=item.cat||"—";if(!groups[cat])groups[cat]=[];groups[cat].push(item)}
+  const COLORS={"🌅 Colazione":C.orange,"🍎 Spuntino":C.violet,"☀️ Pranzo":"#22d3ee","🌙 Cena":C.proteine,"🥂 Aperitivo":C.yellow,"—":C.muted};
+
+  let logHtml="";
+  if(log.length===0){logHtml=`<div style="text-align:center;padding:40px 20px;color:${C.muted};font-size:14px">Nessun pasto registrato${isToday?" per oggi":" in questo giorno"}.<br><br>Vai su 🍽️ Pasto per aggiungere!</div>`}
+  else{
+    for(const cat of ORDER){
+      if(!groups[cat])continue;
+      const items=groups[cat];
+      const tot=items.reduce((a,i)=>{const r=i.qty/i.grammiBase;return{kcal:a.kcal+i.kcal*r,carbo:a.carbo+i.carbo*r,proteine:a.proteine+i.proteine*r,grassi:a.grassi+i.grassi*r}},{kcal:0,carbo:0,proteine:0,grassi:0});
+      const color=COLORS[cat]||C.muted;
+      const gid="g_"+cat.replace(/[^a-zA-Z]/g,"");
+      logHtml+=`<div style="background:${C.card};border-radius:14px;margin-bottom:10px;overflow:hidden;border:1px solid ${C.border}">
+        <div class="group-header" onclick="toggleGroup('${gid}')" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${C.border}">
+          <div style="font-size:13px;font-weight:800;color:${color};font-family:DM Sans,sans-serif">${cat}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:${C.muted};font-family:DM Mono,monospace">${r2(tot.kcal)} kcal · C${r2(tot.carbo)} P${r2(tot.proteine)} G${r2(tot.grassi)}</span>
+            <span style="color:${C.muted};font-size:10px" id="${gid}_arrow">▼</span>
+          </div>
+        </div>
+        <div class="group-items open" id="${gid}">`;
+      for(const item of items){
+        const r=item.qty/item.grammiBase;
+        logHtml+=`<div style="padding:10px 14px;border-bottom:1px solid ${C.border}22;display:flex;justify-content:space-between;align-items:center">
+          <div style="flex:1">
+            <div style="font-size:12px;color:${C.text};font-weight:600">${item.nome}</div>
+            <div style="font-size:10px;color:${C.muted}">${item.qty}g · ${item.ora}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:${C.accent};font-family:DM Mono,monospace">${r2(item.kcal*r)} kcal</span>
+            <button onclick="removeItem('${item.id}')" style="background:#f8717122;color:${C.red};border:none;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:11px">✕</button>
+          </div>
+        </div>`;
+      }
+      logHtml+=`</div></div>`;
+    }
+    // Export button
+    logHtml+=`<button onclick="esportaCSV()" style="width:100%;background:${C.card};color:${C.accent};border:1px solid ${C.accent}44;border-radius:12px;padding:11px;font-weight:700;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif;margin-top:4px">📥 Esporta CSV per nutrizionista</button>`;
+  }
+
+  return `<div>
+    <div style="font-size:19px;font-weight:800;color:${C.text};margin-bottom:12px;font-family:Playfair Display,serif">📔 Diario</div>
+    ${dateNav}${macroHtml}${logHtml}
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// RENDER PASTO TAB
+// ═══════════════════════════════════════
+function renderPasto(){
+  const p=STATE.pasto;
+  const tipos={colazione:"🌅 Colazione",pranzo:"☀️ Pranzo",cena:"🌙 Cena",spuntino:"🍎 Spuntino",aperitivo:"🥂 Aperitivo"};
+  const tipoColors={colazione:C.orange,pranzo:C.accent,cena:C.proteine,spuntino:C.violet,aperitivo:C.yellow};
+
+  let tipoNav=`<div style="display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap">`;
+  for(const [k,l]of Object.entries(tipos)){
+    const active=p.tipo===k;const color=tipoColors[k];
+    tipoNav+=`<button onclick="setPastoTipo('${k}')" style="flex:1;min-width:60px;padding:9px 6px;border-radius:11px;border:none;cursor:pointer;background:${active?color:C.card};color:${active?"#0d1821":C.muted};font-weight:800;font-size:11px;box-shadow:${active?`0 0 10px ${color}55`:"none"}">${l}</button>`;
+  }
+  tipoNav+=`</div>`;
+
+  let form=`<div style="background:${C.card};border-radius:18px;padding:16px;margin-bottom:12px;border:1px solid ${C.border}">`;
+
+  if(p.tipo==="colazione"){
+    form+=`<div style="font-size:12px;color:${C.violet};font-weight:700;margin-bottom:12px;background:#a78bfa15;padding:8px 12px;border-radius:10px">💡 Combina fino a 4 componenti</div>`;
+    const labels=[["col0","Proteina",COLAZIONI.proteiche,C.violet],["col1","Carboidrato",COLAZIONI.carboidrati,C.carbo],["col2","Condimento",COLAZIONI.grassi_dolci,C.grassi],["col3","Bevanda",COLAZIONI.bevande,C.muted],["col4","🍓 Frutta",COLAZIONI.frutta,C.green]];
+    labels.forEach(([id,lbl,items,color],idx)=>{form+=selectDropdown(id,items,idx<4?p.colComp[idx]:p.colComp[3],lbl,color)});
+  } else if(p.tipo==="pranzo"||p.tipo==="cena"){
+    const carbs=p.tipo==="pranzo"?CARBS_PRANZO:CARBS_CENA;
+    const prots=p.tipo==="pranzo"?PROTS_PRANZO:PROTS_CENA;
+    form+=selectDropdown("pastoCarbo",carbs,p.carbo,"🌾 Carboidrato",C.carbo);
+    form+=selectDropdown("pastoProt1",prots,p.prot1,"🥩 Proteina principale",C.proteine,"tipo");
+    form+=selectDropdown("pastoProt2",prots.filter(x=>x.nome!==p.prot1),p.prot2,"🥚 Seconda proteina (opzionale)",C.grassi,"tipo");
+    if(p.prot1&&p.prot2){
+      const p1=prots.find(x=>x.nome===p.prot1);const p2=prots.find(x=>x.nome===p.prot2);
+      form+=`<div style="background:#0d1821;border-radius:12px;padding:12px;margin-bottom:10px">
+        <div style="font-size:11px;color:${C.accent};font-weight:700;margin-bottom:8px">⚖️ Dividi le dosi</div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;color:${C.muted}">
+          <span style="color:${C.proteine}">${p.split}% → ${Math.round((p1?.grammi||0)*p.split/100)}g</span>
+          <span style="color:${C.grassi}">${100-p.split}% → ${Math.round((p2?.grammi||0)*(100-p.split)/100)}g</span>
+        </div>
+        <input type="range" min="10" max="90" value="${p.split}" oninput="STATE.pasto.split=+this.value;render()" style="width:100%;accent-color:${C.accent}">
+      </div>`;
+    }
+    form+=selectDropdown("pastoVerd",VERDURE,p.verd,"🥦 Verdura (250g)",C.green);
+    form+=`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px">
+      <input type="checkbox" ${p.olio?"checked":""} onchange="STATE.pasto.olio=this.checked;render()" style="accent-color:${C.accent};width:15px;height:15px">
+      <span style="font-size:12px;color:${C.muted}">🫒 Olio EVO (${p.tipo==="pranzo"?"1 cucchiaio 10g":"2 cucchiai 20g"})</span>
+    </label>`;
+    form+=selectDropdown("pastoBev",BEVANDE_PASTO,p.bevanda,"🍷 Bevanda (opzionale)",C.violet);
+    form+=selectDropdown("pastoFrutta",FRUTTA_DOPO,p.frutta,"🍎 Frutto dopo pasto (opzionale)",C.green);
+    form+=selectDropdown("pastoFS",FRUTTA_SECCA_DOPO,p.fruttaSecca,"🥜 Frutta secca/crema (opzionale)",C.carbo);
+  } else if(p.tipo==="spuntino"){
+    form+=`<div style="font-size:12px;color:${C.violet};font-weight:700;margin-bottom:12px;background:#a78bfa15;padding:8px 12px;border-radius:10px">💡 Scegli 1-2 componenti</div>`;
+    form+=selectDropdown("spunt0",SPUNTINI_ALL,p.spuntComp[0],"Componente 1",C.violet);
+    form+=selectDropdown("spunt1",SPUNTINI_ALL,p.spuntComp[1],"Componente 2 (opzionale)",C.violet);
+  } else if(p.tipo==="aperitivo"){
+    form+=`<div style="font-size:12px;color:${C.yellow};font-weight:700;margin-bottom:12px;background:#fbbf2415;padding:8px 12px;border-radius:10px">🥂 Ricorda che l'alcol non è nel piano nutrizionale!</div>`;
+    form+=selectDropdown("aperDrink1",APERITIVO_DRINK,p.aperDrink1,"Drink principale",C.yellow);
+    form+=selectDropdown("aperDrink2",APERITIVO_DRINK,p.aperDrink2,"Secondo drink (opzionale)",C.yellow);
+    form+=selectDropdown("aperStuz",APERITIVO_STUZZICHINI,p.aperStuz,"Stuzzichino (opzionale)",C.orange);
+  }
+  form+=`</div>`;
+
+  // Riepilogo
+  const items=calcPasto();
+  const macro=sumMacros(items);
+  const hasContent=items.length>0;
+  let recap="";
+  if(hasContent){
+    const labels={colazione:"🌅 Colazione",pranzo:"☀️ Pranzo",cena:"🌙 Cena",spuntino:"🍎 Spuntino",aperitivo:"🥂 Aperitivo"};
+    recap=`<div style="background:linear-gradient(135deg,${C.accentDim},${C.card});border-radius:18px;padding:16px;border:1px solid ${C.accent}44">
+      <div style="font-size:13px;font-weight:700;color:${C.accent};margin-bottom:12px">📊 Riepilogo ${labels[p.tipo]}</div>
+      <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap">
+        ${[{l:"Kcal",v:r2(macro.kcal),c:C.text},{l:"Carbo",v:r2(macro.carbo)+"g",c:C.carbo},{l:"Prot",v:r2(macro.proteine)+"g",c:C.proteine},{l:"Grassi",v:r2(macro.grassi)+"g",c:C.grassi}].map(({l,v,c})=>`<div style="flex:1;min-width:55px;background:#0d182288;border-radius:10px;padding:10px 6px;text-align:center"><div style="font-size:17px;font-weight:800;color:${c};font-family:DM Mono,monospace">${v}</div><div style="font-size:9px;color:${C.muted}">${l}</div></div>`).join("")}
+      </div>
+      <div style="font-size:11px;color:${C.muted};margin-bottom:12px;line-height:1.5">${items.map(i=>i.nome).join(" + ")}</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:${C.muted};margin-bottom:5px;font-weight:600">📅 Aggiungi a quale giorno?</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="date" value="${p.dataTarget}" max="${todayStr()}" onchange="STATE.pasto.dataTarget=this.value;render()" style="flex:1;padding:9px 12px;border-radius:10px;background:#0d1821;color:${C.text};border:1px solid ${C.accent}66;font-size:13px;font-family:DM Mono,monospace">
+          <button onclick="STATE.pasto.dataTarget='${todayStr()}';render()" style="padding:9px 12px;border-radius:10px;background:${p.dataTarget===todayStr()?C.accent:C.card};color:${p.dataTarget===todayStr()?"#0d1821":C.muted};border:none;cursor:pointer;font-size:11px;font-weight:700">Oggi</button>
+        </div>
+      </div>
+      <button onclick="addToDiary()" style="width:100%;background:${C.accent};color:#0d1821;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 0 16px ${C.accent}66">➕ Aggiungi al Diario</button>
+    </div>`;
+  }
+
+  return `<div>
+    <div style="font-size:19px;font-weight:800;color:${C.text};margin-bottom:14px;font-family:Playfair Display,serif">🍽️ Componi il Pasto</div>
+    ${tipoNav}${form}${recap}
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// RENDER FRIGO TAB
+// ═══════════════════════════════════════
+function renderFrigo(){
+  const tutto=[...CARBS_PRANZO.map(i=>({...i,tipo:"carbo"})),...PROTS_PRANZO.map(i=>({...i,tipo:"proteina"})),...PROTS_CENA.filter(x=>!PROTS_PRANZO.find(y=>y.nome===x.nome)).map(i=>({...i,tipo:"proteina"})),...VERDURE.map(i=>({...i,tipo:"verdura"}))];
+  const cerca=STATE.frigoSearch;const fil=STATE.frigoFiltro;
+  const filtrati=tutto.filter(i=>{
+    const mc=i.nome.toLowerCase().includes(cerca.toLowerCase());
+    const mt=fil==="tutti"||i.tipo===fil;
+    return mc&&mt;
+  });
+
+  const toggle=nome=>{const f=STATE.frigo;const new_f=f.includes(nome)?f.filter(x=>x!==nome):[...f,nome];STATE.frigo=new_f;save("ng_frigo_v4",new_f);render()};
+
+  let combos=[];
+  if(STATE.frigo.length>0){
+    const items=tutto.filter(i=>STATE.frigo.includes(i.nome));
+    const carbs=items.filter(i=>i.tipo==="carbo");const prots=items.filter(i=>i.tipo==="proteina");const verd=items.filter(i=>i.tipo==="verdura");
+    for(const c of carbs)for(const pr of prots){const v=verd[0];combos.push({tipo:"Pasto 🍽️",names:[c.nome,pr.nome,...(v?[v.nome]:[])],kcal:r2((c.kcal||0)+(pr.kcal||0)+(v?.kcal||0)+90)})}
+    combos=combos.slice(0,4);
+  }
+
+  let ingredHtml=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;max-height:200px;overflow-y:auto">`;
+  for(const item of filtrati){
+    const sel=STATE.frigo.includes(item.nome);
+    ingredHtml+=`<button onclick="toggleFrigo('${item.nome.replace(/'/g,"\\'")}')"`+` style="padding:5px 10px;border-radius:99px;font-size:11px;cursor:pointer;background:${sel?C.accent:C.card};color:${sel?"#0d1821":C.muted};border:1px solid ${sel?C.accent:C.border};font-weight:700">${item.nome.split("(")[0].trim()}</button>`;
+  }
+  ingredHtml+=`</div>`;
+
+  let combosHtml="";
+  if(combos.length){
+    combosHtml=`<div style="font-size:13px;font-weight:700;color:${C.accent};margin-bottom:10px">💡 Combinazioni suggerite (${STATE.frigo.length} ingredienti)</div>`;
+    for(const c of combos){
+      combosHtml+=`<div style="background:${C.card};border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid ${C.border}">
+        <div style="font-size:11px;color:${C.accent};font-weight:700;margin-bottom:5px">${c.tipo} · ${c.kcal} kcal</div>
+        <div style="font-size:12px;color:${C.text}">${c.names.join(" + ")}</div>
+      </div>`;
+    }
+  } else if(STATE.frigo.length>0){
+    combosHtml=`<div style="background:${C.card};border-radius:12px;padding:16px;color:${C.muted};font-size:12px">Aggiungi almeno un carboidrato + una proteina per i suggerimenti!</div>`;
+  }
+
+  const filtroButtons=[["tutti","Tutti"],["carbo","🌾 Carbo"],["proteina","🥩 Proteine"],["verdura","🥦 Verdure"]].map(([k,l])=>`<button onclick="setState({frigoFiltro:'${k}'})" style="padding:5px 10px;border-radius:99px;font-size:11px;cursor:pointer;background:${STATE.frigoFiltro===k?C.accent:C.border};color:${STATE.frigoFiltro===k?"#0d1821":C.muted};border:none;font-weight:700">${l}</button>`).join("");
+
+  return `<div>
+    <div style="font-size:19px;font-weight:800;color:${C.text};margin-bottom:6px;font-family:Playfair Display,serif">🥦 Frigo & Dispensa</div>
+    <div style="font-size:12px;color:${C.muted};margin-bottom:12px">Seleziona cosa hai a casa per ricevere suggerimenti pasto</div>
+    <input placeholder="🔍 Cerca ingrediente..." value="${cerca}" oninput="STATE.frigoSearch=this.value;render()" style="width:100%;padding:10px 14px;border-radius:12px;background:${C.card};color:${C.text};border:1px solid ${C.border};margin-bottom:10px;font-size:13px;box-sizing:border-box">
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${filtroButtons}</div>
+    ${ingredHtml}${combosHtml}
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// RENDER PESO TAB
+// ═══════════════════════════════════════
+function renderPeso(){
+  const pesi=STATE.pesi;const lastP=pesi.length?pesi[pesi.length-1]:null;
+  const diff=pesi.length>1?r2(pesi[pesi.length-1].kg-75.1):0;
+  const rimanente=lastP?r2(lastP.kg-65):null;
+
+  // SVG chart
+  let chart="";
+  if(pesi.length>=2){
+    const W=340,H=120,pad={t:20,b:20,l:30,r:20};
+    const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+    const ks=pesi.map(p=>p.kg);const minK=Math.min(...ks)-0.5,maxK=Math.max(...ks,65.1)+0.5;
+    const xP=i=>(pad.l+i/Math.max(pesi.length-1,1)*cW);
+    const yP=k=>(pad.t+(maxK-k)/(maxK-minK)*cH);
+    const pts=pesi.map((p,i)=>`${xP(i)},${yP(p.kg)}`).join(" L");
+    const area=`${xP(0)},${pad.t+cH} L${pts} L${xP(pesi.length-1)},${pad.t+cH} Z`;
+    chart=`<div style="background:${C.card};border-radius:16px;padding:14px;margin-bottom:14px;border:1px solid ${C.border};overflow:hidden">
+      <svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <line x1="${pad.l}" y1="${yP(65)}" x2="${W-pad.r}" y2="${yP(65)}" stroke="${C.green}" stroke-width="1.5" stroke-dasharray="5,4"/>
+        <text x="${W-pad.r}" y="${yP(65)-5}" fill="${C.green}" font-size="9" text-anchor="end">65kg 🎯</text>
+        <path d="M${area}" fill="${C.accent}18"/>
+        <path d="M${pts}" fill="none" stroke="${C.accent}" stroke-width="2.5" style="filter:drop-shadow(0 0 4px ${C.accent})"/>
+        ${pesi.map((p,i)=>`<circle cx="${xP(i)}" cy="${yP(p.kg)}" r="5" fill="${C.accent}"/><text x="${xP(i)}" y="${yP(p.kg)-9}" fill="${C.text}" font-size="8" text-anchor="middle" font-family="DM Mono,monospace">${p.kg}</text><text x="${xP(i)}" y="${H-6}" fill="${C.muted}" font-size="7" text-anchor="middle">${p.data.slice(5)}</text>`).join("")}
+      </svg>
+    </div>`;
+  }
+
+  let statsHtml=`<div style="display:flex;gap:8px;margin-bottom:14px">`;
+  if(lastP) statsHtml+=`<div style="flex:1;background:${C.card};border-radius:12px;padding:12px;border:1px solid ${C.border};text-align:center"><div style="font-size:22px;font-weight:800;color:${C.accent};font-family:DM Mono,monospace">${lastP.kg}</div><div style="font-size:10px;color:${C.muted}">kg attuale</div></div>`;
+  statsHtml+=`<div style="flex:1;background:${C.card};border-radius:12px;padding:12px;border:1px solid ${C.border};text-align:center"><div style="font-size:22px;font-weight:800;color:${diff<=0?C.green:C.orange};font-family:DM Mono,monospace">${diff<=0?diff:"+"+diff}</div><div style="font-size:10px;color:${C.muted}">da 75.1 kg</div></div>`;
+  if(rimanente!==null) statsHtml+=`<div style="flex:1;background:${C.card};border-radius:12px;padding:12px;border:1px solid ${C.border};text-align:center"><div style="font-size:22px;font-weight:800;color:${rimanente<=0?C.green:C.yellow};font-family:DM Mono,monospace">${rimanente<=0?"🎯":rimanente}</div><div style="font-size:10px;color:${C.muted}">${rimanente<=0?"Obiettivo!":"kg all'obiettivo"}</div></div>`;
+  statsHtml+=`</div>`;
+
+  const storico=[...pesi].reverse().map(p=>`<div style="background:${C.card};border-radius:11px;padding:9px 14px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;border:1px solid ${C.border}">
+    <div>
+      <div style="font-size:12px;color:${C.muted}">${new Date(p.data+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"short",year:"numeric"})}</div>
+      ${p.nota?`<div style="font-size:10px;color:${C.accent}">${p.nota}</div>`:""}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:15px;font-weight:800;color:${C.accent};font-family:DM Mono,monospace">${p.kg} kg</span>
+      <button onclick="removePeso('${p.data}')" style="background:#f8717122;color:${C.red};border:none;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:11px">✕</button>
+    </div>
+  </div>`).join("");
+
+  return `<div>
+    <div style="font-size:19px;font-weight:800;color:${C.text};margin-bottom:12px;font-family:Playfair Display,serif">⚖️ Tracker Peso</div>
+    ${statsHtml}${chart}
+    <div style="background:${C.card};border-radius:18px;padding:16px;margin-bottom:14px;border:1px solid ${C.border}">
+      <div style="font-size:13px;font-weight:700;color:${C.accent};margin-bottom:12px">⚖️ Registra misurazione</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="date" id="pesoData" value="${STATE.pesoData}" onchange="STATE.pesoData=this.value" style="flex:1;padding:9px 12px;border-radius:10px;background:#0d1821;color:${C.text};border:1px solid ${C.border};font-size:13px">
+        <input type="number" id="pesoKg" step="0.1" placeholder="kg (es. 65.2)" value="${STATE.pesoInput}" oninput="STATE.pesoInput=this.value" style="flex:1;padding:9px 12px;border-radius:10px;background:#0d1821;color:${C.text};border:1px solid ${C.border};font-size:13px;font-family:DM Mono,monospace">
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="pesaNota" placeholder="Nota (es. dopo palestra)" value="${STATE.pesaNota}" oninput="STATE.pesaNota=this.value" style="flex:1;padding:9px 12px;border-radius:10px;background:#0d1821;color:${C.text};border:1px solid ${C.border};font-size:12px">
+        <button onclick="addPeso()" style="background:${C.accent};color:#0d1821;border:none;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer">Salva</button>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:${C.muted};margin-bottom:8px">📋 Storico</div>
+    ${storico}
+    <button onclick="esportaCSV()" style="width:100%;background:${C.card};color:${C.accent};border:1px solid ${C.accent}44;border-radius:12px;padding:11px;font-weight:700;font-size:13px;cursor:pointer;margin-top:8px">📥 Esporta CSV per nutrizionista</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════
+function render(){
+  const today=todayStr();const macro=calcDayMacros(today);
+  const header=`<div style="background:linear-gradient(135deg,${C.card},#0d2035);padding:20px 16px 14px;border-bottom:1px solid ${C.border};position:sticky;top:0;z-index:50">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:22px;font-weight:800;font-family:Playfair Display,serif;color:${C.accent}">NutriGabri</div>
+        <div style="font-size:10px;color:${C.muted}">Piano 1600 kcal · 33 anni · obj 65 kg</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:800;color:${macro.kcal>TARGET.kcal?C.red:C.text};font-family:DM Mono,monospace">${r2(macro.kcal)}</div>
+        <div style="font-size:9px;color:${C.muted}">/ ${TARGET.kcal} kcal oggi</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:11px">
+      ${[{l:"C",cur:macro.carbo,max:TARGET.carbo,color:C.carbo},{l:"P",cur:macro.proteine,max:TARGET.proteine,color:C.proteine},{l:"G",cur:macro.grassi,max:TARGET.grassi,color:C.grassi}].map(({l,cur,max,color})=>`<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:9px;color:${C.muted};margin-bottom:2px"><span>${l}</span><span>${r2(cur)}/${max}g</span></div><div style="height:4px;background:${C.border};border-radius:99px"><div style="height:100%;background:${cur>max?C.red:color};border-radius:99px;width:${Math.min(cur/max*100,100)}%;box-shadow:0 0 5px ${color}88"></div></div></div>`).join("")}
+    </div>
+  </div>`;
+
+  const tabs=[{key:"diario",icon:"📔",label:"Diario"},{key:"pasto",icon:"🍽️",label:"Pasto"},{key:"frigo",icon:"🥦",label:"Frigo"},{key:"peso",icon:"⚖️",label:"Peso"}];
+  const bottomNav=`<div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:${C.card};border-top:1px solid ${C.border};display:flex;z-index:50">
+    ${tabs.map(t=>`<button onclick="STATE.tab='${t.key}';render()" style="flex:1;padding:11px 6px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:19px">${t.icon}</span><span style="font-size:10px;font-weight:700;color:${STATE.tab===t.key?C.accent:C.muted};border-bottom:2px solid ${STATE.tab===t.key?C.accent:"transparent"};padding-bottom:1px">${t.label}</span></button>`).join("")}
+  </div>`;
+
+  let content="";
+  if(STATE.tab==="diario")content=renderDiario();
+  else if(STATE.tab==="pasto")content=renderPasto();
+  else if(STATE.tab==="frigo")content=renderFrigo();
+  else if(STATE.tab==="peso")content=renderPeso();
+
+  document.getElementById("app").innerHTML=header+`<div style="padding:16px 14px">${content}</div>`+bottomNav;
+}
+
+// ═══════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════
+function handleSelect(id,value){
+  const p=STATE.pasto;
+  if(id==="pastoCarbo"){p.carbo=value||null}
+  else if(id==="pastoProt1"){p.prot1=value||null}
+  else if(id==="pastoProt2"){p.prot2=value||null}
+  else if(id==="pastoVerd"){p.verd=value||null}
+  else if(id==="pastoBev"){p.bevanda=value||null}
+  else if(id==="pastoFrutta"){p.frutta=value||null}
+  else if(id==="pastoFS"){p.fruttaSecca=value||null}
+  else if(id==="aperDrink1"){p.aperDrink1=value||null}
+  else if(id==="aperDrink2"){p.aperDrink2=value||null}
+  else if(id==="aperStuz"){p.aperStuz=value||null}
+  else if(id==="spunt0"){p.spuntComp[0]=value||null}
+  else if(id==="spunt1"){p.spuntComp[1]=value||null}
+  else if(id==="col0"){p.colComp[0]=value||null}
+  else if(id==="col1"){p.colComp[1]=value||null}
+  else if(id==="col2"){p.colComp[2]=value||null}
+  else if(id==="col3"){p.colComp[3]=value||null}
+  else if(id==="col4"){p.colComp[3]=value||null}
+  render();
+}
+
+function setPastoTipo(t){STATE.pasto.tipo=t;render()}
+
+function toggleGroup(id){
+  const el=document.getElementById(id);const arrow=document.getElementById(id+"_arrow");
+  if(el){el.classList.toggle("open");if(arrow)arrow.textContent=el.classList.contains("open")?"▼":"▶"}
+}
+
+function removeItem(id){
+  const key=STATE.diarioDate;
+  const log=(STATE.diario[key]||[]).filter(i=>String(i.id)!==String(id));
+  STATE.diario={...STATE.diario,[key]:log};
+  save("ng_diario_v4",STATE.diario);render();
+}
+
+function toggleFrigo(nome){
+  const f=STATE.frigo;
+  STATE.frigo=f.includes(nome)?f.filter(x=>x!==nome):[...f,nome];
+  save("ng_frigo_v4",STATE.frigo);render();
+}
+
+function addPeso(){
+  const kg=parseFloat(STATE.pesoInput);
+  if(isNaN(kg)||kg<30||kg>200){showToast("⚠️ Inserisci un peso valido!");return}
+  const data=STATE.pesoData||todayStr();
+  const pesi=STATE.pesi.filter(p=>p.data!==data);
+  pesi.push({data,kg,nota:STATE.pesaNota||""});
+  pesi.sort((a,b)=>a.data.localeCompare(b.data));
+  STATE.pesi=pesi;STATE.pesoInput="";STATE.pesaNota="";
+  save("ng_pesi_v4",STATE.pesi);
+  showToast(`✅ Peso salvato: ${kg} kg`);render();
+}
+
+function removePeso(data){
+  STATE.pesi=STATE.pesi.filter(p=>p.data!==data);
+  save("ng_pesi_v4",STATE.pesi);render();
+}
+
+// Start
+render();
+</script>
+</body>
+</html>
